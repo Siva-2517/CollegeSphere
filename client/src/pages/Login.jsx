@@ -19,7 +19,7 @@ export default function Login() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
-    
+
     if (token && user) {
       try {
         const userData = JSON.parse(user);
@@ -40,16 +40,16 @@ export default function Login() {
   }, []);
 
 
-const redirectBasedOnRole = (role) => {
-  if (role === 'admin') navigate('/admin/dashboard');
-  else if (role === 'organizer') navigate('/organizer/dashboard');
-  else navigate('/student/dashboard');
-};
+  const redirectBasedOnRole = (role) => {
+    if (role === 'admin') navigate('/admin/dashboard');
+    else if (role === 'organizer') navigate('/organizer/dashboard');
+    else navigate('/student/dashboard');
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -90,7 +90,7 @@ const redirectBasedOnRole = (role) => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -189,11 +189,11 @@ const redirectBasedOnRole = (role) => {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl mb-4 shadow-2xl shadow-purple-500/50 animate-float">
             <Sparkles className="w-10 h-10" />
           </div>
-          
+
           <h1 className="text-5xl md:text-6xl font-bold mb-3 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
             CollegeSphere
           </h1>
-          
+
           <p className="text-gray-400 text-lg">
             Discover, manage & register for college events
           </p>
@@ -227,9 +227,8 @@ const redirectBasedOnRole = (role) => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-3 bg-white/5 border ${
-                    errors.email ? 'border-red-500' : 'border-white/10'
-                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white placeholder-gray-500`}
+                  className={`w-full pl-10 pr-4 py-3 bg-white/5 border ${errors.email ? 'border-red-500' : 'border-white/10'
+                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white placeholder-gray-500`}
                   placeholder="you@college.edu"
                   autoComplete="email"
                 />
@@ -253,9 +252,8 @@ const redirectBasedOnRole = (role) => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-12 py-3 bg-white/5 border ${
-                    errors.password ? 'border-red-500' : 'border-white/10'
-                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white placeholder-gray-500`}
+                  className={`w-full pl-10 pr-12 py-3 bg-white/5 border ${errors.password ? 'border-red-500' : 'border-white/10'
+                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white placeholder-gray-500`}
                   placeholder="Enter your password"
                   autoComplete="current-password"
                 />
@@ -324,7 +322,7 @@ const redirectBasedOnRole = (role) => {
                 <span className="px-4 bg-white/5 text-gray-400">Or</span>
               </div>
             </div>
-           
+
             {/* Register Link */}
             <div className="text-center">
               <p className="text-gray-400">

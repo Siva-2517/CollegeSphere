@@ -72,7 +72,7 @@ export default function Landing() {
     const fetchData = async () => {
       try {
         // Fetch stats - endpoint doesn't exist, using fallback
-        const statsRes = await fetch('http://localhost:5000/api/stats');
+        const statsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/stats`);
         if (statsRes.ok) {
           const statsData = await statsRes.json();
           setStats({
@@ -90,7 +90,7 @@ export default function Landing() {
 
       try {
         // Fetch upcoming events
-        const eventsRes = await fetch('http://localhost:5000/api/event/AllEvents');
+        const eventsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/event/AllEvents`);
         if (eventsRes.ok) {
           const eventsData = await eventsRes.json();
           setEvents(eventsData.events || eventsData || []);
@@ -193,7 +193,7 @@ export default function Landing() {
     setRegistering(prev => ({ ...prev, [eventId]: true }));
 
     try {
-      const response = await fetch(`http://localhost:5000/api/registration/register/${eventId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/registration/register/${eventId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -228,7 +228,7 @@ export default function Landing() {
     try {
       // Note: This endpoint requires registrationId, not eventId
       // For now, using a placeholder - in real implementation, you'd need to fetch the registration ID first
-      const response = await fetch(`http://localhost:5000/api/registration/cancel/${eventId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/registration/cancel/${eventId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -558,8 +558,8 @@ export default function Landing() {
                           onClick={() => handleRegister(event._id)}
                           disabled={!isActive || registering[event._id]}
                           className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 ${isActive
-                              ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-lg hover:shadow-purple-500/50 hover:scale-105'
-                              : 'bg-gray-600 cursor-not-allowed opacity-50'
+                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-lg hover:shadow-purple-500/50 hover:scale-105'
+                            : 'bg-gray-600 cursor-not-allowed opacity-50'
                             }`}
                         >
                           {registering[event._id] ? 'Registering...' : isActive ? 'Register Now' : 'Registration Closed'}

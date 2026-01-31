@@ -126,7 +126,7 @@ export default function AdminDashboard() {
 
     try {
       // Fetch stats from backend
-      const statsRes = await fetch('http://localhost:5000/api/admin/stats', {
+      const statsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/stats`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -141,7 +141,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch pending organizers
-      const pendingOrgRes = await fetch('http://localhost:5000/api/admin/organizers/pending', {
+      const pendingOrgRes = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/organizers/pending`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -151,7 +151,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch approved organizers
-      const approvedOrgRes = await fetch('http://localhost:5000/api/admin/organizers/approved', {
+      const approvedOrgRes = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/organizers/approved`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -161,7 +161,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch pending events
-      const pendingEventsRes = await fetch('http://localhost:5000/api/admin/events/pending', {
+      const pendingEventsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/events/pending`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -173,7 +173,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch approved events
-      const approvedEventsRes = await fetch('http://localhost:5000/api/admin/events/approved', {
+      const approvedEventsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/events/approved`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -201,7 +201,7 @@ export default function AdminDashboard() {
     setProcessingIds(prev => ({ ...prev, [organizerId]: true }));
 
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/organizers/${organizerId}/approve`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/organizers/${organizerId}/approve`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -234,7 +234,7 @@ export default function AdminDashboard() {
     setProcessingIds(prev => ({ ...prev, [organizerId]: true }));
 
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/organizers/${organizerId}/reject`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/organizers/${organizerId}/reject`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -273,7 +273,7 @@ export default function AdminDashboard() {
     setProcessingIds(prev => ({ ...prev, [eventId]: true }));
 
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/events/${eventId}/approve`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/events/${eventId}/approve`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -305,7 +305,7 @@ export default function AdminDashboard() {
     setProcessingIds(prev => ({ ...prev, [eventId]: true }));
 
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/events/${eventId}/reject`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/events/${eventId}/reject`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -337,7 +337,7 @@ export default function AdminDashboard() {
     setProcessingIds(prev => ({ ...prev, [eventId]: true }));
 
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/events/${eventId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/events/${eventId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

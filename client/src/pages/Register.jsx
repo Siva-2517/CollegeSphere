@@ -23,14 +23,14 @@ export default function Register() {
   const [apiError, setApiError] = useState('');
 
   useEffect(() => {
-    if (formData.role === 'admin' || formData.role === 'organizer') {
+    if (formData.role === 'admin' || formData.role === 'organizer' || formData.role === 'student') {
       fetchColleges();
     }
   }, [formData.role]);
 
   const fetchColleges = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/college/all');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/college/all`);
       if (response.ok) {
         const data = await response.json();
         setColleges(data.colleges || data || []);
@@ -101,7 +101,7 @@ export default function Register() {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    if ((formData.role === 'admin' || formData.role === 'organizer') && !formData.collegeId) {
+    if ((formData.role === 'admin' || formData.role === 'organizer' || formData.role === 'student') && !formData.collegeId) {
       newErrors.collegeId = 'Please select a college';
     }
 
@@ -129,10 +129,11 @@ export default function Register() {
         email: formData.email,
         password: formData.password,
         role: formData.role,
-        ...(formData.role === 'admin' || formData.role === 'organizer' ? { collegeId: formData.collegeId } : {})
+
+        ...(formData.role === 'admin' || formData.role === 'organizer' || formData.role === 'student' ? { collegeId: formData.collegeId } : {})
       };
 
-      const response = await fetch('http://localhost:5000/api/register', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -394,10 +395,10 @@ export default function Register() {
               <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, role: 'student', collegeId: '' }))}
+                  onClick={() => setFormData(prev => ({ ...prev, role: 'student' }))}
                   className={`p-4 rounded-lg border-2 transition-all ${formData.role === 'student'
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                    ? 'border-purple-500 bg-purple-500/10'
+                    : 'border-white/10 bg-white/5 hover:border-white/20'
                     }`}
                 >
                   <User className="w-6 h-6 mx-auto mb-2" />
@@ -407,8 +408,8 @@ export default function Register() {
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, role: 'organizer' }))}
                   className={`p-4 rounded-lg border-2 transition-all ${formData.role === 'organizer'
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                    ? 'border-purple-500 bg-purple-500/10'
+                    : 'border-white/10 bg-white/5 hover:border-white/20'
                     }`}
                 >
                   <Calendar className="w-6 h-6 mx-auto mb-2" />
@@ -418,7 +419,7 @@ export default function Register() {
             </div>
 
             {/* College Selection (for admin and organizer only) */}
-            {((formData.role === 'organizer')) && (
+            {((formData.role === 'organizer' || formData.role === 'student')) && (
               <div className="animate-fadeInUp">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Select Your College

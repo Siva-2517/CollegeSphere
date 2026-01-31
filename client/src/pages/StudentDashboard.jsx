@@ -70,7 +70,7 @@ export default function StudentDashboard() {
 
     try {
       // Fetch upcoming events
-      const eventsRes = await fetch('http://localhost:5000/api/event/AllEvents', {
+      const eventsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/event/AllEvents`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -108,7 +108,7 @@ export default function StudentDashboard() {
       }
 
       // Fetch my registrations
-      const regRes = await fetch('http://localhost:5000/api/registration/my-registrations', {
+      const regRes = await fetch(`${import.meta.env.VITE_API_URL}/api/registration/my-registrations`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -175,7 +175,7 @@ export default function StudentDashboard() {
     setProcessingEvents(prev => ({ ...prev, [eventId]: true }));
 
     try {
-      const response = await fetch(`http://localhost:5000/api/registration/register/${eventId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/registration/register/${eventId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -209,7 +209,7 @@ export default function StudentDashboard() {
     setProcessingEvents(prev => ({ ...prev, [registrationId]: true }));
 
     try {
-      const response = await fetch(`http://localhost:5000/api/registration/cancel/${registrationId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/registration/cancel/${registrationId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

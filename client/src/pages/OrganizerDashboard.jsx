@@ -290,7 +290,7 @@ export default function OrganizerDashboard() {
 
         try {
             // Fetch colleges
-            const collegesRes = await fetch('http://localhost:5000/api/college/all', {
+            const collegesRes = await fetch(`${import.meta.env.VITE_API_URL}/api/college/all`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (collegesRes.ok) {
@@ -308,8 +308,8 @@ export default function OrganizerDashboard() {
             // Fetch events
             const eventUrl =
                 userData.role === 'organizer'
-                    ? 'http://localhost:5000/api/event/my-events'
-                    : 'http://localhost:5000/api/event/AllEvents';
+                    ? `${import.meta.env.VITE_API_URL}/api/event/my-events`
+                    : `${import.meta.env.VITE_API_URL}/api/event/AllEvents`;
 
             const eventsRes = await fetch(eventUrl, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -366,7 +366,7 @@ export default function OrganizerDashboard() {
                 if (organizerEventIds.length > 0) {
                     // Fetch registrations for all events
                     const registrationPromises = organizerEventIds.map(eventId =>
-                        fetch(`http://localhost:5000/api/registration/event/${eventId}`, {
+                        fetch(`${import.meta.env.VITE_API_URL}/api/registration/event/${eventId}`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         }).then(res => res.ok ? res.json() : { registrations: [] })
                             .catch(() => ({ registrations: [] }))
@@ -426,7 +426,7 @@ export default function OrganizerDashboard() {
                 body: JSON.stringify(eventData)
             };
 
-            const response = await fetch('http://localhost:5000/api/event/create', requestOptions);
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/event/create`, requestOptions);
 
             const data = await response.json();
 
@@ -448,7 +448,7 @@ export default function OrganizerDashboard() {
         const token = localStorage.getItem('token');
 
         try {
-            const response = await fetch(`http://localhost:5000/api/event/${editingEvent._id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/event/${editingEvent._id}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -477,7 +477,7 @@ export default function OrganizerDashboard() {
         const token = localStorage.getItem('token');
 
         try {
-            const response = await fetch(`http://localhost:5000/api/event/${eventId}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/event/${eventId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
