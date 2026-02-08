@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, Users, Globe, Zap, ArrowRight, CheckCircle, Award, Clock, BarChart3, Sparkles } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import api from '../api/axios';
 
 // Animated Counter Component
 const AnimatedCounter = ({ end, duration = 2000, suffix = '' }) => {
@@ -71,18 +72,13 @@ export default function Landing() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch stats - endpoint doesn't exist, using fallback
-        const statsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/stats`);
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setStats({
-            events: statsData.totalEvents || 500,
-            students: statsData.totalStudents || 10000,
-            colleges: statsData.totalColleges || 50
-          });
-        } else {
-          setStats({ events: 500, students: 10000, colleges: 50 });
-        }
+        // Fetch stats from public endpoint
+        const { data: statsData } = await api.get('/api/admin/stats/public');
+        setStats({
+          events: statsData.totalEvents || 500,
+          students: statsData.totalStudents || 10000,
+          colleges: statsData.totalColleges || 50
+        });
       } catch (error) {
         console.error('Error fetching stats:', error);
         setStats({ events: 500, students: 10000, colleges: 50 });
@@ -90,53 +86,11 @@ export default function Landing() {
 
       try {
         // Fetch upcoming events
-        const eventsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/event/AllEvents`);
-        if (eventsRes.ok) {
-          const eventsData = await eventsRes.json();
-          setEvents(eventsData.events || eventsData || []);
-        } else {
-          // Fallback demo events
-          setEvents([
-            {
-              _id: '1',
-              name: 'TechFest 2026',
-              collegeName: 'MIT College',
-              date: '2026-02-15',
-              deadline: '2026-02-10',
-              isRegistered: false,
-              active: true
-            },
-            {
-              _id: '2',
-              name: 'HackInnovate',
-              collegeName: 'Stanford University',
-              date: '2026-03-05',
-              deadline: '2026-02-28',
-              isRegistered: false,
-              active: true
-            },
-            {
-              _id: '3',
-              name: 'AI Workshop Series',
-              collegeName: 'Berkeley',
-              date: '2026-01-20',
-              deadline: '2026-01-18',
-              isRegistered: true,
-              active: false
-            },
-            {
-              _id: '4',
-              name: 'Startup Summit',
-              collegeName: 'Harvard',
-              date: '2026-04-12',
-              deadline: '2026-04-05',
-              isRegistered: false,
-              active: true
-            }
-          ]);
-        }
+        const { data: eventsData } = await api.get('/api/event/AllEvents');
+        setEvents(eventsData.events || eventsData || []);
       } catch (error) {
         console.error('Error fetching events:', error);
+        // Fallback demo events
         setEvents([
           {
             _id: '1',
@@ -193,24 +147,17 @@ export default function Landing() {
     setRegistering(prev => ({ ...prev, [eventId]: true }));
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/registration/register/${eventId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        setEvents(prev => prev.map(event =>
-          event._id === eventId ? { ...event, isRegistered: true } : event
-        ));
-      } else {
-        alert('Please login to register for events');
-      }
+      await api.post(`/api/registration/register/${eventId}`);
+      setEvents(prev => prev.map(event =>
+        event._id === eventId ? { ...event, isRegistered: true } : event
+      ));
     } catch (error) {
       console.error('Registration error:', error);
-      alert('Registration failed. Please try again.');
+      if (error.response?.status === 401) {
+        alert('Please login to register for events');
+      } else {
+        alert('Registration failed. Please try again.');
+      }
     } finally {
       setRegistering(prev => ({ ...prev, [eventId]: false }));
     }
@@ -228,21 +175,10 @@ export default function Landing() {
     try {
       // Note: This endpoint requires registrationId, not eventId
       // For now, using a placeholder - in real implementation, you'd need to fetch the registration ID first
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/registration/cancel/${eventId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        setEvents(prev => prev.map(event =>
-          event._id === eventId ? { ...event, isRegistered: false } : event
-        ));
-      } else {
-        alert('Cancellation failed. Please try again.');
-      }
+      await api.delete(`/api/registration/cancel/${eventId}`);
+      setEvents(prev => prev.map(event =>
+        event._id === eventId ? { ...event, isRegistered: false } : event
+      ));
     } catch (error) {
       console.error('Cancellation error:', error);
       alert('Cancellation failed. Please try again.');
@@ -381,22 +317,29 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Floating Cards Preview */}
+          {/* Live Stats Preview */}
           <div className="mt-20 relative">
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent h-32 z-10 bottom-0" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto opacity-60">
-              {[1, 2, 3].map((i) => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              {[
+                { icon: <Calendar className="w-8 h-8" />, metric: "24", label: "Events This Week", color: "from-blue-500 to-cyan-500" },
+                { icon: <Award className="w-8 h-8" />, metric: "4.8★", label: "Average Rating", color: "from-yellow-500 to-orange-500" },
+                { icon: <CheckCircle className="w-8 h-8" />, metric: "98%", label: "Success Rate", color: "from-green-500 to-emerald-500" }
+              ].map((stat, i) => (
                 <div
                   key={i}
-                  className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 transform hover:scale-105 transition-all duration-300"
+                  className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 transform hover:scale-105 transition-all duration-300 hover:bg-white/10 hover:border-white/20"
                   style={{
                     animation: `float ${3 + i}s ease-in-out infinite`,
                     animationDelay: `${i * 0.3}s`
                   }}
                 >
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg mb-4" />
-                  <div className="h-4 bg-white/10 rounded mb-2" />
-                  <div className="h-3 bg-white/5 rounded w-2/3" />
+                  <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-lg mb-4 flex items-center justify-center`}>
+                    {stat.icon}
+                  </div>
+                  <div className="text-3xl font-bold mb-1 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    {stat.metric}
+                  </div>
+                  <p className="text-sm text-gray-400">{stat.label}</p>
                 </div>
               ))}
             </div>

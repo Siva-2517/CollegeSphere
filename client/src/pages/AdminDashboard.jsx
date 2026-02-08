@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, Calendar, Building2, LogOut, CheckCircle, XCircle, Clock, AlertCircle, TrendingUp, Sparkles, Search, Download, Menu, X as CloseIcon } from 'lucide-react';
+import { Shield, Users, Calendar, Building2, LogOut, CheckCircle, XCircle, Clock, AlertCircle, TrendingUp, Sparkles, Search, Download, Menu, X as CloseIcon, Edit } from 'lucide-react';
+import api from '../api/axios';
 
 const AnimatedCounter = ({ end, duration = 1000 }) => {
   const [count, setCount] = useState(0);
@@ -58,6 +59,70 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, type = 
   );
 };
 
+const CollegeModal = ({ isOpen, onClose, onSubmit, form, setForm }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 border border-white/10 rounded-2xl max-w-md w-full p-6 animate-fadeInUp">
+        <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
+          <Building2 className="w-6 h-6 text-blue-400" />
+        </div>
+        <h3 className="text-xl font-bold text-center mb-2">Create New College</h3>
+        <p className="text-gray-400 text-center mb-6 text-sm">Add a new college to the platform</p>
+
+        <div className="space-y-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">College Name *</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="e.g., MIT College of Engineering"
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Location *</label>
+            <input
+              type="text"
+              value={form.location}
+              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              placeholder="e.g., Mumbai, Maharashtra"
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Email Domain *</label>
+            <input
+              type="text"
+              value={form.emailDomain}
+              onChange={(e) => setForm({ ...form, emailDomain: e.target.value })}
+              placeholder="e.g., mit.edu"
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 bg-white/5 border border-white/10 rounded-lg font-semibold hover:bg-white/10 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSubmit}
+            className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg font-semibold hover:scale-105 transition-all"
+          >
+            Create College
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Helper function to format date as DD/MM/YYYY
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
@@ -67,6 +132,174 @@ const formatDate = (dateString) => {
   const year = date.getFullYear();
   return `${day}/${month}/${year}`;
 };
+
+// Poster Preview Modal Component
+const PosterPreviewModal = ({ isOpen, onClose, posterUrl, title }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-4xl max-h-[90vh] w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+        >
+          <CloseIcon className="w-8 h-8" />
+        </button>
+        <div className="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="p-4 border-b border-white/10">
+            <h3 className="text-xl font-bold text-white">{title}</h3>
+          </div>
+          <div className="flex items-center justify-center bg-black">
+            <img
+              src={posterUrl}
+              alt={title}
+              className="max-w-full max-h-[70vh] object-contain"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Profile Edit Modal Component
+const ProfileEditModal = ({ isOpen, onClose, user, onSave }) => {
+  const [formData, setFormData] = useState({ name: '', currentPassword: '', newPassword: '' });
+  const [activeSection, setActiveSection] = useState('profile');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setFormData({ name: user.name || '', currentPassword: '', newPassword: '' });
+    }
+  }, [user]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      if (activeSection === 'profile') {
+        await onSave({ name: formData.name }, 'profile');
+      } else {
+        if (!formData.currentPassword || !formData.newPassword) {
+          setError('Both current and new password are required');
+          setLoading(false);
+          return;
+        }
+        await onSave({ currentPassword: formData.currentPassword, newPassword: formData.newPassword }, 'password');
+        setFormData({ ...formData, currentPassword: '', newPassword: '' });
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to update');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 border border-white/10 rounded-2xl max-w-md w-full p-6 animate-fadeInUp">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-2xl font-bold">Edit Profile</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+            <CloseIcon className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setActiveSection('profile')}
+            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${activeSection === 'profile' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white/5 hover:bg-white/10'}`}
+          >
+            Profile Info
+          </button>
+          <button
+            onClick={() => setActiveSection('password')}
+            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${activeSection === 'password' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white/5 hover:bg-white/10'}`}
+          >
+            Change Password
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {activeSection === 'profile' ? (
+            <div>
+              <label className="block text-sm font-medium mb-2">Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                required
+              />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-2">Current Password</label>
+                <input
+                  type="password"
+                  value={formData.currentPassword}
+                  onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">New Password</label>
+                <input
+                  type="password"
+                  value={formData.newPassword}
+                  onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  required
+                  minLength="6"
+                />
+                <p className="text-xs text-gray-400 mt-1">Minimum 6 characters</p>
+              </div>
+            </>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
+            >
+              {loading ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
@@ -95,6 +328,10 @@ export default function AdminDashboard() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [collegeModal, setCollegeModal] = useState({ isOpen: false });
+  const [collegeForm, setCollegeForm] = useState({ name: '', location: '', emailDomain: '' });
+  const [posterPreview, setPosterPreview] = useState({ isOpen: false, url: '', title: '' });
+  const [profileEditModal, setProfileEditModal] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -126,62 +363,52 @@ export default function AdminDashboard() {
 
     try {
       // Fetch stats from backend
-      const statsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/stats`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
+      try {
+        const { data: statsData } = await api.get('/api/admin/stats');
         setStats({
           totalColleges: statsData.data.totalColleges || 0,
           totalOrganizers: statsData.data.totalOrganizers || 0,
           pendingApprovals: statsData.data.pendingApprovals || 0,
           totalEvents: statsData.data.totalEvents || 0
         });
+      } catch (err) {
+        console.error('Error fetching stats:', err);
       }
 
       // Fetch pending organizers
-      const pendingOrgRes = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/organizers/pending`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (pendingOrgRes.ok) {
-        const pendingOrgData = await pendingOrgRes.json();
+      try {
+        const { data: pendingOrgData } = await api.get('/api/admin/organizers/pending');
         setPendingOrganizers(pendingOrgData.data || []);
+      } catch (err) {
+        console.error('Error fetching pending organizers:', err);
       }
 
       // Fetch approved organizers
-      const approvedOrgRes = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/organizers/approved`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (approvedOrgRes.ok) {
-        const approvedOrgData = await approvedOrgRes.json();
+      try {
+        const { data: approvedOrgData } = await api.get('/api/admin/organizers/approved');
         setApprovedOrganizers(approvedOrgData.data || []);
+      } catch (err) {
+        console.error('Error fetching approved organizers:', err);
       }
 
       // Fetch pending events
-      const pendingEventsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/events/pending`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
       let pendingEventsData = [];
-      if (pendingEventsRes.ok) {
-        const data = await pendingEventsRes.json();
+      try {
+        const { data } = await api.get('/api/admin/events/pending');
         pendingEventsData = data.data || [];
         setPendingEvents(pendingEventsData);
+      } catch (err) {
+        console.error('Error fetching pending events:', err);
       }
 
       // Fetch approved events
-      const approvedEventsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/events/approved`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
       let approvedEventsData = [];
-      if (approvedEventsRes.ok) {
-        const data = await approvedEventsRes.json();
+      try {
+        const { data } = await api.get('/api/admin/events/approved');
         approvedEventsData = data.data || [];
         setApprovedEvents(approvedEventsData);
+      } catch (err) {
+        console.error('Error fetching approved events:', err);
       }
 
       // Combine all events for the "All Events" tab
@@ -201,27 +428,16 @@ export default function AdminDashboard() {
     setProcessingIds(prev => ({ ...prev, [organizerId]: true }));
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/organizers/${organizerId}/approve`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      await api.put(`/api/admin/organizers/${organizerId}/approve`);
 
-      if (response.ok) {
-        setPendingOrganizers(prev => prev.filter(org => org._id !== organizerId));
-        setSuccessMessage('Organizer approved successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-        fetchDashboardData(token);
-      } else {
-        const data = await response.json();
-        setError(data.message || 'Failed to approve organizer');
-        setTimeout(() => setError(''), 3000);
-      }
+      setPendingOrganizers(prev => prev.filter(org => org._id !== organizerId));
+      setSuccessMessage('Organizer approved successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      fetchDashboardData(token);
     } catch (error) {
       console.error('Error approving organizer:', error);
-      setError('Failed to approve organizer');
+      const errorMsg = error.response?.data?.message || 'Failed to approve organizer';
+      setError(errorMsg);
       setTimeout(() => setError(''), 3000);
     } finally {
       setProcessingIds(prev => ({ ...prev, [organizerId]: false }));
@@ -234,27 +450,16 @@ export default function AdminDashboard() {
     setProcessingIds(prev => ({ ...prev, [organizerId]: true }));
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/organizers/${organizerId}/reject`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      await api.put(`/api/admin/organizers/${organizerId}/reject`);
 
-      if (response.ok) {
-        setPendingOrganizers(prev => prev.filter(org => org._id !== organizerId));
-        setSuccessMessage('Organizer rejected successfully');
-        setTimeout(() => setSuccessMessage(''), 3000);
-        fetchDashboardData(token);
-      } else {
-        const data = await response.json();
-        setError(data.message || 'Failed to reject organizer');
-        setTimeout(() => setError(''), 3000);
-      }
+      setPendingOrganizers(prev => prev.filter(org => org._id !== organizerId));
+      setSuccessMessage('Organizer rejected successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      fetchDashboardData(token);
     } catch (error) {
       console.error('Error rejecting organizer:', error);
-      setError('Failed to reject organizer');
+      const errorMsg = error.response?.data?.message || 'Failed to reject organizer';
+      setError(errorMsg);
       setTimeout(() => setError(''), 3000);
     } finally {
       setProcessingIds(prev => ({ ...prev, [organizerId]: false }));
@@ -273,27 +478,16 @@ export default function AdminDashboard() {
     setProcessingIds(prev => ({ ...prev, [eventId]: true }));
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/events/${eventId}/approve`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      await api.put(`/api/admin/events/${eventId}/approve`);
 
-      if (response.ok) {
-        setAllEvents(prev => prev.map(e => e._id === eventId ? { ...e, isApproved: true } : e));
-        setSuccessMessage('Event approved successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-        fetchDashboardData(token);
-      } else {
-        const data = await response.json();
-        setError(data.message || 'Failed to approve event');
-        setTimeout(() => setError(''), 3000);
-      }
+      setAllEvents(prev => prev.map(e => e._id === eventId ? { ...e, isApproved: true } : e));
+      setSuccessMessage('Event approved successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      fetchDashboardData(token);
     } catch (error) {
       console.error('Error approving event:', error);
-      setError('Failed to approve event');
+      const errorMsg = error.response?.data?.message || 'Failed to approve event';
+      setError(errorMsg);
       setTimeout(() => setError(''), 3000);
     } finally {
       setProcessingIds(prev => ({ ...prev, [eventId]: false }));
@@ -305,27 +499,16 @@ export default function AdminDashboard() {
     setProcessingIds(prev => ({ ...prev, [eventId]: true }));
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/events/${eventId}/reject`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      await api.put(`/api/admin/events/${eventId}/reject`);
 
-      if (response.ok) {
-        setAllEvents(prev => prev.map(e => e._id === eventId ? { ...e, isApproved: false } : e));
-        setSuccessMessage('Event rejected successfully');
-        setTimeout(() => setSuccessMessage(''), 3000);
-        fetchDashboardData(token);
-      } else {
-        const data = await response.json();
-        setError(data.message || 'Failed to reject event');
-        setTimeout(() => setError(''), 3000);
-      }
+      setAllEvents(prev => prev.map(e => e._id === eventId ? { ...e, isApproved: false } : e));
+      setSuccessMessage('Event rejected successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      fetchDashboardData(token);
     } catch (error) {
       console.error('Error rejecting event:', error);
-      setError('Failed to reject event');
+      const errorMsg = error.response?.data?.message || 'Failed to reject event';
+      setError(errorMsg);
       setTimeout(() => setError(''), 3000);
     } finally {
       setProcessingIds(prev => ({ ...prev, [eventId]: false }));
@@ -337,30 +520,67 @@ export default function AdminDashboard() {
     setProcessingIds(prev => ({ ...prev, [eventId]: true }));
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/events/${eventId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      await api.delete(`/api/admin/events/${eventId}`);
 
-      if (response.ok) {
-        setAllEvents(prev => prev.filter(e => e._id !== eventId));
-        setSuccessMessage('Event deleted successfully');
-        setTimeout(() => setSuccessMessage(''), 3000);
-        fetchDashboardData(token);
-      } else {
-        const data = await response.json();
-        setError(data.message || 'Failed to delete event');
-        setTimeout(() => setError(''), 3000);
-      }
+      setAllEvents(prev => prev.filter(e => e._id !== eventId));
+      setSuccessMessage('Event deleted successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      fetchDashboardData(token);
     } catch (error) {
       console.error('Error deleting event:', error);
-      setError('Failed to delete event');
+      const errorMsg = error.response?.data?.message || 'Failed to delete event';
+      setError(errorMsg);
       setTimeout(() => setError(''), 3000);
     } finally {
       setProcessingIds(prev => ({ ...prev, [eventId]: false }));
+    }
+  };
+
+  const handleCreateCollege = async () => {
+    const token = localStorage.getItem('token');
+
+    // Validation
+    if (!collegeForm.name || !collegeForm.location || !collegeForm.emailDomain) {
+      setError('All fields are required');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    try {
+      await api.post('/api/college/create', collegeForm);
+
+      setSuccessMessage('College created successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      setCollegeModal({ isOpen: false });
+      setCollegeForm({ name: '', location: '', emailDomain: '' });
+      fetchDashboardData(token);
+    } catch (error) {
+      console.error('Error creating college:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to create college';
+      setError(errorMsg);
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const handleProfileUpdate = async (data, type) => {
+    const token = localStorage.getItem('token');
+    const endpoint = type === 'profile' ? '/api/profile' : '/api/password';
+
+    try {
+      const { data: result } = await api.put(endpoint, data);
+
+      if (type === 'profile') {
+        const updatedUser = { ...user, name: result.user.name };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        setProfileEditModal(false);
+        alert('Profile updated successfully!');
+      } else {
+        setProfileEditModal(false);
+        alert('Password updated successfully!');
+      }
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -382,6 +602,67 @@ export default function AdminDashboard() {
     a.href = url;
     a.download = 'approved-organizers.csv';
     a.click();
+  };
+
+  const exportEvents = () => {
+    // Create CSV rows with event type information
+    const csvRows = [];
+
+    // Header row
+    csvRows.push(['Event Name', 'College', 'Organizer', 'Event Type', 'Team Size', 'Category', 'Date', 'Venue', 'Status', 'Created Date']);
+
+    // Data rows
+    allEvents.forEach(event => {
+      const eventType = event.eventType || 'Solo';
+      let teamSizeInfo = '';
+
+      if (eventType === 'Team' || eventType === 'team') {
+        if (event.minTeamSize && event.maxTeamSize) {
+          if (event.minTeamSize === event.maxTeamSize) {
+            teamSizeInfo = `${event.minTeamSize} members`;
+          } else {
+            teamSizeInfo = `${event.minTeamSize}-${event.maxTeamSize} members`;
+          }
+        } else if (event.minTeamSize) {
+          teamSizeInfo = `Min ${event.minTeamSize}`;
+        } else if (event.maxTeamSize) {
+          teamSizeInfo = `Max ${event.maxTeamSize}`;
+        }
+      }
+
+      csvRows.push([
+        event.title || event.name || 'N/A',
+        event.collegeName || event.collegeId?.name || 'N/A',
+        event.organizerName || event.createdBy?.name || 'N/A',
+        eventType,
+        teamSizeInfo,
+        event.category || 'N/A',
+        formatDate(event.date),
+        event.venue || 'N/A',
+        event.isApproved ? 'Approved' : 'Pending',
+        formatDate(event.createdAt)
+      ]);
+    });
+
+    // Convert to CSV string with proper escaping
+    const csv = csvRows.map(row =>
+      row.map(cell => {
+        const cellStr = String(cell);
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return `"${cellStr.replace(/"/g, '""')}"`;
+        }
+        return cellStr;
+      }).join(',')
+    ).join('\n');
+
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `events_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const filteredPendingOrganizers = pendingOrganizers.filter(org =>
@@ -731,14 +1012,23 @@ export default function AdminDashboard() {
               <Shield className="w-16 h-16 text-purple-400 mx-auto mb-4" />
               <h3 className="text-2xl font-bold mb-2">Platform Administration</h3>
               <p className="text-gray-400 mb-6">Manage organizer approvals, monitor events, and oversee the entire CollegeSphere platform.</p>
-              {stats.pendingApprovals > 0 && (
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {stats.pendingApprovals > 0 && (
+                  <button
+                    onClick={() => setActiveTab('approvals')}
+                    className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg font-semibold hover:scale-105 transition-all"
+                  >
+                    Review {stats.pendingApprovals} Pending Approval{stats.pendingApprovals !== 1 ? 's' : ''}
+                  </button>
+                )}
                 <button
-                  onClick={() => setActiveTab('approvals')}
-                  className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg font-semibold hover:scale-105 transition-all"
+                  onClick={() => setCollegeModal({ isOpen: true })}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg font-semibold hover:scale-105 transition-all flex items-center gap-2 justify-center"
                 >
-                  Review {stats.pendingApprovals} Pending Approval{stats.pendingApprovals !== 1 ? 's' : ''}
+                  <Building2 className="w-5 h-5" />
+                  Create College
                 </button>
-              )}
+              </div>
             </div>
           </div>
         )}
@@ -1042,11 +1332,15 @@ export default function AdminDashboard() {
                     key={event._id}
                     className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden hover:scale-105 transition-all"
                   >
-                    <div className="h-32 bg-gradient-to-br from-purple-600 to-pink-600 relative" style={{
-                      backgroundImage: event.poster ? `url(${event.poster})` : undefined,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center'
-                    }}>
+                    <div
+                      className="h-48 bg-gradient-to-br from-purple-600 to-pink-600 relative cursor-pointer hover:opacity-90 transition-opacity"
+                      style={{
+                        backgroundImage: event.poster ? `url(${event.poster})` : undefined,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                      }}
+                      onClick={() => event.poster && setPosterPreview({ isOpen: true, url: event.poster, title: event.title || event.name })}
+                    >
                       {event.poster && <div className="absolute inset-0 bg-black/30"></div>}
                       <div className="absolute top-4 right-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${event.isApproved
@@ -1138,6 +1432,13 @@ export default function AdminDashboard() {
               <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                 Admin Profile
               </h2>
+              <button
+                onClick={() => setProfileEditModal(true)}
+                className="hidden md:flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-all"
+              >
+                <Edit className="w-4 h-4" />
+                <span className="text-sm">Edit Profile</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1290,6 +1591,33 @@ export default function AdminDashboard() {
         type={confirmModal.type}
         title={confirmModal.type === 'approve' ? 'Approve Organizer?' : 'Reject Organizer?'}
         message={`Are you sure you want to ${confirmModal.type} ${confirmModal.organizerName}? This action cannot be undone.`}
+      />
+
+      <CollegeModal
+        isOpen={collegeModal.isOpen}
+        onClose={() => {
+          setCollegeModal({ isOpen: false });
+          setCollegeForm({ name: '', location: '', emailDomain: '' });
+        }}
+        onSubmit={handleCreateCollege}
+        form={collegeForm}
+        setForm={setCollegeForm}
+      />
+
+      {/* Poster Preview Modal */}
+      <PosterPreviewModal
+        isOpen={posterPreview.isOpen}
+        onClose={() => setPosterPreview({ isOpen: false, url: '', title: '' })}
+        posterUrl={posterPreview.url}
+        title={posterPreview.title}
+      />
+
+      {/* Profile Edit Modal */}
+      <ProfileEditModal
+        isOpen={profileEditModal}
+        onClose={() => setProfileEditModal(false)}
+        user={user}
+        onSave={handleProfileUpdate}
       />
     </div>
   );

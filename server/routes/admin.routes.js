@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 
-const {getStats} = require('../controllers/stat.controller')
+const { getStats, getPublicStats } = require('../controllers/stat.controller')
 const {
     getPendingOrganizers,
     getApprovedOrganizers,
@@ -13,7 +13,10 @@ const {
     rejectEvent,
     deleteEvent
 } = require('../controllers/admin.controller')
-const {protect}=require('../middleware/auth.middleware')
+const { protect } = require('../middleware/auth.middleware')
+
+// Public Stats (no authentication required)
+router.get('/stats/public', getPublicStats);
 
 // Stats
 router.get('/stats', protect(['admin']), getStats);

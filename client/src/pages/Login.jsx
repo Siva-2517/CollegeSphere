@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock, Sparkles, AlertCircle, ArrowRight, LogIn } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import api from '../api/axios';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -90,54 +91,45 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        })
+      const { data } = await api.post('/api/auth/login', {
+        email: formData.email,
+        password: formData.password
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store token
-        if (data.token) {
-          localStorage.setItem('token', data.token);
-        }
-
-        // Store user data
-        if (data.user) {
-          localStorage.setItem('user', JSON.stringify(data.user));
-        }
-
-        // Handle remember me
-        if (rememberMe) {
-          localStorage.setItem('rememberedEmail', formData.email);
-        } else {
-          localStorage.removeItem('rememberedEmail');
-        }
-
-        // Success animation then redirect
-        setTimeout(() => {
-          redirectBasedOnRole(data.user?.role || 'student');
-        }, 500);
-      } else {
-        // Handle backend errors
-        if (data.message) {
-          setApiError(data.message);
-        } else if (data.error) {
-          setApiError(data.error);
-        } else {
-          setApiError('Login failed. Please check your credentials.');
-        }
+      // Store token
+      if (data.token) {
+        localStorage.setItem('token', data.token);
       }
+
+      // Store user data
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+
+      // Handle remember me
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', formData.email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
+
+      // Success animation then redirect
+      setTimeout(() => {
+        redirectBasedOnRole(data.user?.role || 'student');
+      }, 500);
     } catch (error) {
       console.error('Login error:', error);
-      setApiError('Network error. Please check your connection and try again.');
+
+      // Handle backend errors
+      if (error.response?.data?.message) {
+        setApiError(error.response.data.message);
+      } else if (error.response?.data?.error) {
+        setApiError(error.response.data.error);
+      } else if (error.response) {
+        setApiError('Login failed. Please check your credentials.');
+      } else {
+        setApiError('Network error. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }

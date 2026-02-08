@@ -32,4 +32,26 @@ const getStats = async (req, res) => {
     }
 };
 
-module.exports = { getStats };
+// Public stats endpoint - no authentication required
+const getPublicStats = async (req, res) => {
+    try {
+        const totalColleges = await College.countDocuments();
+        const totalEvents = await Event.countDocuments({ isApproved: true });
+        const totalStudents = await User.countDocuments({ role: 'student' });
+
+        res.status(200).json({
+            success: true,
+            totalColleges,
+            totalEvents,
+            totalStudents
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching public statistics',
+            error: error.message
+        });
+    }
+};
+
+module.exports = { getStats, getPublicStats };

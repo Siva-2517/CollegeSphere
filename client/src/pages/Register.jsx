@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, User, Mail, Lock, Sparkles, CheckCircle, XCircle, AlertCircle, ArrowRight, Calendar } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, Sparkles, CheckCircle, XCircle, AlertCircle, ArrowRight, Calendar, Send } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import api from '../api/axios';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -9,7 +10,8 @@ export default function Register() {
     password: '',
     confirmPassword: '',
     role: 'student',
-    collegeId: ''
+    collegeId: '',
+    otp: ''
   });
 
   const navigate = useNavigate();
@@ -21,6 +23,10 @@ export default function Register() {
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
 
   useEffect(() => {
     if (formData.role === 'admin' || formData.role === 'organizer' || formData.role === 'student') {
@@ -30,18 +36,8 @@ export default function Register() {
 
   const fetchColleges = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/college/all`);
-      if (response.ok) {
-        const data = await response.json();
-        setColleges(data.colleges || data || []);
-      } else {
-        setColleges([
-          { _id: '1', name: 'MIT College' },
-          { _id: '2', name: 'Stanford University' },
-          { _id: '3', name: 'Harvard University' },
-          { _id: '4', name: 'Berkeley College' }
-        ]);
-      }
+      const { data } = await api.get('/api/college/all');
+      setColleges(data.colleges || data || []);
     } catch (error) {
       console.error('Error fetching colleges:', error);
       setColleges([
@@ -64,6 +60,14 @@ export default function Register() {
     setPasswordStrength(strength);
   }, [formData.password]);
 
+  // Resend timer countdown
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -71,6 +75,24 @@ export default function Register() {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
     setApiError('');
+  };
+
+  const sendOTP = async () => {
+    try {
+      await api.post('/api/auth/send-otp', { email: formData.email });
+      setResendTimer(60);
+      return true;
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      if (error.response?.data?.msg) {
+        setOtpError(error.response.data.msg);
+      } else if (error.response?.data?.message) {
+        setOtpError(error.response.data.message);
+      } else {
+        setOtpError('Failed to send OTP. Please try again.');
+      }
+      return false;
+    }
   };
 
   const validateForm = () => {
@@ -121,7 +143,24 @@ export default function Register() {
       return;
     }
 
+    // Send OTP and show modal
     setLoading(true);
+    const otpSent = await sendOTP();
+    setLoading(false);
+
+    if (otpSent) {
+      setShowOtpModal(true);
+    }
+  };
+
+  const handleOtpSubmit = async () => {
+    if (!otpValue || otpValue.length !== 6) {
+      setOtpError('Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    setLoading(true);
+    setOtpError('');
 
     try {
       const payload = {
@@ -129,47 +168,39 @@ export default function Register() {
         email: formData.email,
         password: formData.password,
         role: formData.role,
-
+        otp: otpValue,
         ...(formData.role === 'admin' || formData.role === 'organizer' || formData.role === 'student' ? { collegeId: formData.collegeId } : {})
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      const { data } = await api.post('/api/auth/register', payload);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        if (data.token) {
-          localStorage.setItem('token', data.token);
-        }
-
-        if (data.user) {
-          localStorage.setItem('user', JSON.stringify(data.user));
-        }
-
-        setTimeout(() => {
-          if (formData.role === 'admin') navigate('/admin/dashboard');
-          else if (formData.role === 'organizer') navigate('/organizer/dashboard');
-          else navigate('/student/dashboard');
-
-        }, 1000);
-      } else {
-        if (data.message) {
-          setApiError(data.message);
-        } else if (data.error) {
-          setApiError(data.error);
-        } else {
-          setApiError('Registration failed. Please try again.');
-        }
+      if (data.token) {
+        localStorage.setItem('token', data.token);
       }
+
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+
+      setTimeout(() => {
+        if (formData.role === 'admin') navigate('/admin/dashboard');
+        else if (formData.role === 'organizer') navigate('/organizer/dashboard');
+        else navigate('/student/dashboard');
+      }, 1000);
     } catch (error) {
       console.error('Registration error:', error);
-      setApiError('Network error. Please check your connection and try again.');
+
+      if (error.response?.data?.msg) {
+        setOtpError(error.response.data.msg);
+      } else if (error.response?.data?.message) {
+        setOtpError(error.response.data.message);
+      } else if (error.response?.data?.error) {
+        setOtpError(error.response.data.error);
+      } else if (error.response) {
+        setOtpError('Registration failed. Please try again.');
+      } else {
+        setOtpError('Network error. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -506,6 +537,97 @@ export default function Register() {
           By creating an account, you'll be able to discover and register for events across multiple colleges
         </p>
       </div>
+
+      {/* OTP Verification Modal */}
+      {showOtpModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl animate-fadeIn">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-purple-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Verify Your Email</h3>
+              <p className="text-gray-400 text-sm">
+                We've sent a 6-digit verification code to<br />
+                <span className="text-purple-400 font-medium">{formData.email}</span>
+              </p>
+            </div>
+
+            {/* OTP Error Message */}
+            {otpError && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-red-300 text-sm">{otpError}</p>
+              </div>
+            )}
+
+            {/* OTP Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-300 mb-2 text-center">
+                Enter Verification Code
+              </label>
+              <input
+                type="text"
+                value={otpValue}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setOtpValue(value);
+                  setOtpError('');
+                }}
+                maxLength={6}
+                className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white placeholder-gray-500 tracking-[0.5em] text-center text-2xl font-bold"
+                placeholder="000000"
+                autoFocus
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={handleOtpSubmit}
+                disabled={loading || otpValue.length !== 6}
+                className="w-full py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5" />
+                    Verify & Create Account
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={async () => {
+                  if (resendTimer === 0) {
+                    setOtpError('');
+                    await sendOTP();
+                  }
+                }}
+                disabled={resendTimer > 0}
+                className="w-full py-2 text-purple-400 hover:text-purple-300 disabled:text-gray-500 disabled:cursor-not-allowed font-medium transition-colors text-sm"
+              >
+                {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend verification code'}
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowOtpModal(false);
+                  setOtpValue('');
+                  setOtpError('');
+                }}
+                className="w-full py-2 text-gray-400 hover:text-gray-300 font-medium transition-colors text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
