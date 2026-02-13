@@ -3,7 +3,7 @@ import Landing from './pages/Landing.jsx'
 import {Router, Routes, Route } from 'react-router-dom';
 import Register from './pages/Register.jsx';
 import Login from './pages/Login.jsx';
-import AdminDashboard from './pages/AdminDashBoard.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
 import OrganizerDashboard from './pages/OrganizerDashboard.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
 
