@@ -83,13 +83,16 @@ CollegeSphere/
 │   │   ├── api/
 │   │   │   └── axios.js
 │   │   ├── pages/
-│   │   ├── components/          # recommended reusable UI components
-│   │   ├── hooks/               # recommended custom hooks
-│   │   ├── layouts/             # recommended route/layout wrappers
-│   │   ├── utils/               # recommended client-side helpers
+│   │   ├── App.css
 │   │   ├── App.jsx
+│   │   ├── index.css
 │   │   └── main.jsx
+│   ├── eslint.config.js
+│   ├── index.html
 │   ├── package.json
+│   ├── postcss.config.js
+│   ├── README.md
+│   ├── tailwind.config.js
 │   └── vite.config.js
 ├── server/
 │   ├── config/
@@ -227,8 +230,6 @@ Backend default: `http://localhost:5000`
 }
 ```
 
-
-
 ## Future Enhancements
 
 - Real-time notifications for approval status and event updates
@@ -242,5 +243,3 @@ Backend default: `http://localhost:5000`
 - **Siva Surya P**
 - LinkedIn: `https://www.linkedin.com/in/sivasurya-tech`
 - Email: `sivatechie17@gmail.com`
-
-
