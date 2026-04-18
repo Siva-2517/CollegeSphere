@@ -17,8 +17,18 @@ const userSchema = new mongoose.Schema(
         },
         password: {
             type: String,
-            required: true,
+            required: function () {
+                return !this.googleId;
+            },
             minlength: 8
+        },
+        googleId: {
+            type: String,
+            default: null
+        },
+        avatar: {
+            type: String,
+            default: ''
         },
         role: {
             type: String,
@@ -28,6 +38,10 @@ const userSchema = new mongoose.Schema(
         isApproved: {
             type: Boolean,
             default: false
+        },
+        isProfileComplete: {
+            type: Boolean,
+            default: true
         },
         collegeId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -41,7 +55,7 @@ const userSchema = new mongoose.Schema(
 )
 
 userSchema.pre('save', async function () {
-    if (!this.isModified('password')) {
+    if (!this.isModified('password') || !this.password) {
         return;
     }
     const salt = await bcrypt.genSalt(10)

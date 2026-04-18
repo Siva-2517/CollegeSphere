@@ -6,6 +6,8 @@ import Login from './pages/Login.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import OrganizerDashboard from './pages/OrganizerDashboard.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
+import GoogleCallback from './pages/GoogleCallback.jsx';
+import CompleteProfile from './pages/CompleteProfile.jsx';
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
         <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/auth/google/callback" element={<GoogleCallback />} />
+        <Route path="/complete-profile" element={<CompleteProfile />} />
 
       </Routes>
   );

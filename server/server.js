@@ -1,6 +1,8 @@
 const express = require('express')
 const dotenv = require('dotenv')
 const cors = require('cors')
+const session = require('express-session')
+const passport = require('./config/passport')
 
 dotenv.config()
 
@@ -14,8 +16,23 @@ connectDB()
 
 const app = express()
 
-app.use(cors())
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true
+}))
 app.use(express.json())
+
+// Session config (required for Passport OAuth flow)
+app.use(session({
+  secret: process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }
+}))
+
+// Initialize Passport
+app.use(passport.initialize())
+app.use(passport.session())
 
 app.use('/api/auth', authRoutes)
 app.use('/api/event', eventRoutes)

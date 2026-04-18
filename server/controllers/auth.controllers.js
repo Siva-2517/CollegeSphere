@@ -182,6 +182,12 @@ exports.login = async (req, res) => {
         if (!user) {
             return res.status(400).json({ msg: 'Invalid credentials NO User found!' })
         }
+
+        // Check if user signed up via Google and has no password
+        if (!user.password) {
+            return res.status(400).json({ msg: 'This account uses Google Sign-In. Please log in with Google.' })
+        }
+
         const isMatch = await bcrypt.compare(password, user.password)
         if (!isMatch) {
             return res.status(400).json({ msg: 'Invalid email or password' })
@@ -265,6 +271,11 @@ exports.updatePassword = async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
+        // Google OAuth users don't have a password
+        if (user.googleId && !user.password) {
+            return res.status(400).json({ msg: 'Cannot update password for Google Sign-In accounts' });
+        }
+
         // Verify current password
         const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
@@ -279,5 +290,169 @@ exports.updatePassword = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ msg: 'Failed to update password', error: err.message });
+    }
+};
+
+// Google OAuth callback handler
+exports.googleCallback = async (req, res) => {
+    try {
+        const user = req.user;
+
+        const token = jwt.sign(
+            {
+                Id: user._id,
+                role: user.role,
+                isApproved: user.isApproved || false,
+                collegeId: user.collegeId || null
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '3h' }
+        );
+
+        const userData = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            avatar: user.avatar || '',
+            isProfileComplete: user.isProfileComplete !== false
+        };
+
+        // Redirect to frontend with token and user data
+        const clientURL = process.env.CLIENT_URL || 'http://localhost:5173';
+        const params = new URLSearchParams({
+            token: token,
+            user: JSON.stringify(userData)
+        });
+
+        res.redirect(`${clientURL}/auth/google/callback?${params.toString()}`);
+    } catch (err) {
+        console.error('Google callback error:', err);
+        const clientURL = process.env.CLIENT_URL || 'http://localhost:5173';
+        res.redirect(`${clientURL}/login?error=google_auth_failed`);
+    }
+};
+
+// Complete profile for Google OAuth users (select role & college)
+exports.completeProfile = async (req, res) => {
+    try {
+        const userId = req.user.Id;
+        const { role, collegeId } = req.body;
+
+        if (!role) {
+            return res.status(400).json({ msg: 'Role is required' });
+        }
+
+        const allowedRoles = ['student', 'organizer'];
+        if (!allowedRoles.includes(role)) {
+            return res.status(400).json({ msg: 'Invalid role selected' });
+        }
+
+        if (!collegeId) {
+            return res.status(400).json({ msg: 'College selection is required' });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        user.role = role;
+        user.collegeId = collegeId;
+        user.isProfileComplete = true;
+        user.isApproved = role === 'organizer' ? false : true;
+        await user.save();
+
+        // Send Welcome Email
+        try {
+            let emailSubject = "Welcome to CollegeSphere - Account Created Successfully 🎉";
+            let emailHtml = '';
+
+            if (role === 'student') {
+                emailHtml = `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+                        <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <h2 style="color: #1f2937; margin-bottom: 20px;">Welcome to CollegeSphere, ${user.name}! 🎓</h2>
+                            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Your student account has been created successfully.</p>
+                            
+                            <div style="background-color: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                <p style="color: #1e40af; font-weight: bold; margin-bottom: 10px;">What's next?</p>
+                                <ul style="color: #1e3a8a; line-height: 1.8;">
+                                    <li>Browse upcoming events from colleges</li>
+                                    <li>Register for events that interest you</li>
+                                    <li>Manage your registrations from your dashboard</li>
+                                </ul>
+                            </div>
+                            
+                            <p style="color: #4b5563; font-size: 16px; margin-top: 20px;">Happy exploring!</p>
+                            <p style="color: #6b7280; font-size: 14px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                                Best regards,<br/>
+                                <strong>The CollegeSphere Team</strong>
+                            </p>
+                        </div>
+                    </div>
+                `;
+            } else if (role === 'organizer') {
+                emailHtml = `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+                        <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <h2 style="color: #1f2937; margin-bottom: 20px;">Welcome to CollegeSphere, ${user.name}! 🎯</h2>
+                            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Your organizer account has been created successfully.</p>
+                            
+                            <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+                                <p style="color: #92400e; font-weight: bold; margin-bottom: 10px;">⏳ Pending Approval</p>
+                                <p style="color: #78350f; line-height: 1.6;">Your account is currently under review by our admin team. You'll receive a notification once your account is approved.</p>
+                            </div>
+                            
+                            <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                <p style="color: #065f46; font-weight: bold; margin-bottom: 10px;">Once approved, you'll be able to:</p>
+                                <ul style="color: #047857; line-height: 1.8;">
+                                    <li>Create and manage college events</li>
+                                    <li>Track event registrations</li>
+                                    <li>View participant details</li>
+                                </ul>
+                            </div>
+                            
+                            <p style="color: #6b7280; font-size: 14px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                                Best regards,<br/>
+                                <strong>The CollegeSphere Team</strong>
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            await sendEmail(user.email, emailSubject, emailHtml);
+        } catch (emailError) {
+            console.error('Failed to send welcome email:', emailError.message);
+        }
+
+        // Generate new token with updated role
+        const token = jwt.sign(
+            {
+                Id: user._id,
+                role: user.role,
+                isApproved: user.isApproved,
+                collegeId: user.collegeId
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '3h' }
+        );
+
+        res.status(200).json({
+            msg: 'Profile completed successfully',
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                avatar: user.avatar || '',
+                isProfileComplete: true
+            }
+        });
+    } catch (err) {
+        console.error('Complete profile error:', err);
+        res.status(500).json({ msg: 'Failed to complete profile', error: err.message });
     }
 };

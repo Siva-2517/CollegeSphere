@@ -23,6 +23,7 @@ CollegeSphere centralizes discovery, approvals, and registrations in one platfor
 
 - Role-based authentication for `student`, `organizer`, and `admin`
 - OTP-based registration flow with email verification
+- Google OAuth (Single Sign-On) for quick registration and login
 - Organizer onboarding with admin approval workflow
 - Event creation, update, deletion, and approval lifecycle
 - Public and college-wise event listing APIs
@@ -48,6 +49,7 @@ CollegeSphere centralizes discovery, approvals, and registrations in one platfor
 - Express 5
 - MongoDB + Mongoose
 - JWT Authentication
+- Passport.js (Google OAuth20)
 - bcryptjs
 - Multer + Cloudinary (poster upload)
 - Nodemailer / Resend (email workflows)
@@ -149,6 +151,10 @@ CLOUDINARY_API_SECRET=your_api_secret
 RESEND_API_KEY=your_resend_key
 EMAIL_USER=your_email_user
 EMAIL_PASS=your_email_password
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+CLIENT_URL=http://localhost:5173
 ```
 
 ### 4) Run the project
