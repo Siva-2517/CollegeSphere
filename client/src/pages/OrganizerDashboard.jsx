@@ -771,7 +771,7 @@ export default function OrganizerDashboard() {
 
     const handleProfileUpdate = async (data, type) => {
         const token = localStorage.getItem('token');
-        const endpoint = type === 'profile' ? '/api/profile' : '/api/password';
+        const endpoint = type === 'profile' ? '/api/auth/profile' : '/api/auth/password';
 
         try {
             const { data: result } = await api.put(endpoint, data);
