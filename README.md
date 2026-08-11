@@ -1,244 +1,376 @@
-# CollegeSphere
+# 🎓 CollegeSphere - Inter-College Event Management & SphereAI Assistant
 
-A full-stack web application for managing inter-college events with role-based workflows for students, organizers, college admins, and super admins, powered by an intelligent dual-LLM AI Agent (`SphereAI`).
+CollegeSphere is a full-stack, multi-tenant enterprise event management platform powered by an intelligent dual-LLM function-calling AI Agent (`SphereAI`). It streamlines event publishing, organizer approvals, student registrations, soft-deletion recovery, and platform governance across 4 dedicated role-based workflows.
+
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![React](https://img.shields.io/badge/React-19-cyan.svg)
+![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)
+![Express](https://img.shields.io/badge/Express-5.0-lightgrey.svg)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green.svg)
+![Groq](https://img.shields.io/badge/Groq-Llama%203.3%2070B-orange.svg)
+![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-blue.svg)
+
+---
 
 ## 🚀 Live Demo
 
-- 🌐 Frontend: [CollegeSphere App](https://college-sphere-three.vercel.app/)
-- 🔗 Backend API: [API Base URL](https://collegesphere-server.onrender.com)
+- 🌐 **Frontend Application**: [CollegeSphere App](https://college-sphere-three.vercel.app/)
+- 🔗 **Backend API Base**: [Collegesphere Server API](https://collegesphere-server.onrender.com)
 
-Note: The backend is hosted on a free tier (Render), the first request may take 30–60 seconds to wake up the server.
+> **Note**: The backend is hosted on a free Render tier. If cold-started, the initial API request may take 30–60 seconds to spin up.
 
-## Overview
+---
 
-CollegeSphere streamlines the complete college event lifecycle: event publishing, organizer approval, student registration, soft-deletion recovery, and platform governance. It provides 4 specialized role-based dashboards and protected APIs to support secure multi-tenant operations.
+## 📋 Table of Contents
 
-## Key Features
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [SphereAI Engine](#sphereai-engine)
+- [Role Permission Matrix](#role-permission-matrix)
+- [Technology Stack](#technology-stack)
+- [Architecture & Database Schema](#architecture--database-schema)
+- [Data Security & Validation](#data-security--validation)
+- [Installation & Quick Start](#installation--quick-start)
+- [Environment Variables](#environment-variables)
+- [API Endpoints Specification](#api-endpoints-specification)
+- [Project Structure](#project-structure)
+- [License & Author](#license--author)
 
-- **4-Role Permission System**: `student`, `organizer`, `admin` (College Admin), and `superadmin` (System Governance).
-- **SphereAI Conversational Agent**: Dual-LLM function calling engine (Groq Llama 3.3 70B + Gemini 2.5 Flash) with Two-Phase Action Confirmation Cards.
-- **Super Admin Governance Dashboard**: Multi-tenant college CRUD, user role promotion, trash bin recovery for soft-deleted events, and platform health diagnostics.
-- **College Admin Scoping**: College Admins moderate organizers and events strictly bound to their assigned institution.
-- **Event Lifecycle & Auto Soft-Deletion**: Automated soft-deletion (`isDeleted: true`) for passed events, remaining seat slot checks, and deadline validation.
-- **OTP Verification & Google OAuth 2.0**: Email verification and single sign-on with role completion flow.
-- **Transactional Email Workflows**: Automatic approval and welcome emails via Nodemailer/Resend.
 
-## Tech Stack
+---
 
-### Frontend
+## 🎯 Overview
 
-- React 19
-- Vite
-- React Router DOM
-- Axios
-- Tailwind CSS
-- ESLint
+**CollegeSphere** eliminates fragmented Google Forms, scattered WhatsApp announcements, and manual spreadsheets used by colleges to run inter-college fests, hackathons, workshops, and sports tournaments. 
 
-### Backend
+### The Problem We Solve
+- **Fragmented Event Discovery**: Students miss events hosted by neighboring institutions.
+- **Unverified Organizers**: Fraudulent or unapproved event listings.
+- **Seat Overbooking & Deadline Chaos**: Lack of automated capacity and deadline checks.
+- **Lack of Governance**: College admins lack tools to moderate events and manage institution-wide roles.
 
-- Node.js
-- Express 5
-- MongoDB + Mongoose
-- JWT Authentication
-- Passport.js (Google OAuth20)
-- bcryptjs
-- Multer + Cloudinary (poster upload)
-- Nodemailer / Resend (email workflows)
+### Our Solution
+CollegeSphere centralizes the entire event lifecycle into a single platform:
+1. **Multi-Tenant Onboarding**: Verify colleges and approve student event organizers.
+2. **AI-Powered Event Discovery & Registration**: Intelligent conversational agent (`SphereAI`) that finds events, answers queries, and registers students with interactive confirmation cards.
+3. **Automated Expiration & Trash Bin**: Automatic soft-deletion of passed events with a Super Admin recovery trash bin.
+4. **4-Role Governance**: Tailored dashboards for Students, Organizers, College Admins, and Super Admins.
 
-## Architecture
+---
 
-CollegeSphere follows a layered full-stack architecture:
+## ✨ Key Features
 
-- **Presentation Layer (client):** React pages and routing for role-specific dashboards
-- **API Layer (server/routes):** REST endpoints grouped by domain (`auth`, `event`, `registration`, `admin`, `college`)
-- **Business Layer (server/controllers):** validation, approval logic, role checks, and orchestration
-- **Data Layer (server/modals):** Mongoose schemas for users, events, registrations, OTP, and colleges
-- **Infrastructure Layer (server/config + utils):** DB connection, cloud media uploads, email services
+### 👑 4-Role Access Control
+* **Student (`student`)**: Browse events by category/deadline, check remaining seat capacity, register (solo/team), manage bookings.
+* **Organizer (`organizer`)**: Draft events, generate AI descriptions and rules, manage attendee lists, track registration statistics.
+* **College Admin (`admin`)**: Scoped strictly to their `collegeId`. Approve/reject organizers and events belonging to their assigned institution.
+* **System Super Admin (`superadmin`)**: Global system maintainer. Create/delete colleges, assign user roles, recover soft-deleted events (Trash Bin), and inspect platform health diagnostics.
 
-Authentication uses JWT middleware with role checks, and organizer access is gated until admin approval.
+### 🤖 SphereAI Agent (Dual-LLM Function Calling)
+* **Dual Engine Fallback**: Primary Groq (`llama-3.3-70b-versatile`) + Secondary Gemini (`gemini-2.5-flash`) + Zero-Key Smart Fallback.
+* **Two-Phase Action Confirmation Protocol**: Intercepts mutating actions (e.g. event registration, cancellation, event creation, role changes) and renders interactive `<ConfirmationCard />` widgets before modifying the database.
+* **Strict Permission Guards**: Enforces role boundaries directly in prompt generation and server tool execution.
 
-## Security Practices
+### ⏰ Event Lifecycle & Soft-Deletion
+* **Remaining Seat Validation**: Prevents overbooking past `event.maxSlots`.
+* **Registration Deadline Enforcement**: Automatically blocks registration once `event.deadline` passes.
+* **Auto Soft-Deletion**: Automatically marks `isDeleted: true` when `event.date < current_date`, keeping student feeds clean.
 
-- JWT-based stateless authentication
-- Role-based route protection middleware
-- Password hashing using bcrypt
-- OTP expiration and verification logic
-- Duplicate registration prevention
-- Server-side validation for critical workflows
+### 🔐 Authentication & Onboarding
+* **OTP Verification**: Email verification via Nodemailer / Resend.
+* **Google OAuth 2.0**: Single Sign-On with role selection and profile completion flow.
+* **JWT Authorization**: 3-hour expiration with protected API endpoints.
 
-## Scalable Folder Structure
+---
 
-```text
-CollegeSphere/
-├── client/
-│   ├── public/
-│   ├── src/
-│   │   ├── api/
-│   │   │   └── axios.js
-│   │   ├── pages/
-│   │   ├── App.css
-│   │   ├── App.jsx
-│   │   ├── index.css
-│   │   └── main.jsx
-│   ├── eslint.config.js
-│   ├── index.html
-│   ├── package.json
-│   ├── postcss.config.js
-│   ├── README.md
-│   ├── tailwind.config.js
-│   └── vite.config.js
-├── server/
-│   ├── config/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── modals/
-│   ├── routes/
-│   ├── utils/
-│   ├── package.json
-│   └── server.js
-├── docs/
-│   └── screenshots/
-│       └── .gitkeep
-└── README.md
+## 🤖 SphereAI Engine
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          SPHERE AI AGENT PIPELINE                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  User Query ──▶ AIChatWidget ──▶ POST /api/ai/chat ──▶ Groq Llama 3.3 70B
+                                                               │
+                                                  Tool Call Triggered?
+                                                   │                 │
+                                                 YES                 NO
+                                                  │                  │
+                                                  ▼                  ▼
+                                        executeTool(fn, args)    Direct Text
+                                                  │                 Reply
+                                      Requires Confirmation?
+                                       │                  │
+                                     YES                  NO
+                                      │                   │
+                                      ▼                   ▼
+                              ConfirmationCard        Return JSON
+                               (User Approve)         Data Loop
 ```
 
-## Installation
+---
+
+## 🔑 Role Permission Matrix
+
+| Feature / Action | Student (`student`) | Organizer (`organizer`) | College Admin (`admin`) | Super Admin (`superadmin`) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Search & View Events** | ✅ | ✅ | ✅ | ✅ |
+| **Register / Cancel Event** | ✅ | ❌ | ❌ | ❌ |
+| **Create Event Drafts** | ❌ | ✅ (If Approved) | ✅ | ✅ |
+| **View Event Registrations** | ❌ | ✅ (Their Events) | ✅ | ✅ |
+| **Approve / Reject Organizers** | ❌ | ❌ | ✅ (Their College) | ✅ (Global) |
+| **Approve / Reject Events** | ❌ | ❌ | ✅ (Their College) | ✅ (Global) |
+| **Manage Colleges (CRUD)** | ❌ | ❌ | ❌ | ✅ |
+| **Assign User Roles** | ❌ | ❌ | ❌ | ✅ |
+| **Trash Bin Recovery** | ❌ | ❌ | ❌ | ✅ |
+
+---
+
+## 🛠️ Technology Stack
+
+### Frontend
+- **React 19** & **Vite**
+- **Tailwind CSS** (Cosmic dark glassmorphism design system)
+- **Lucide React** (Modern iconography)
+- **Axios** (JWT interceptors & error handler)
+- **React Router DOM v7**
+
+### Backend
+- **Node.js** & **Express 5**
+- **MongoDB Atlas** + **Mongoose 8**
+- **JWT (jsonwebtoken)** & **bcryptjs**
+- **Passport.js** (Google OAuth 2.0 Strategy)
+- **Nodemailer / Resend** (Transactional emails)
+
+### AI Infrastructure
+- **Groq SDK** (`llama-3.3-70b-versatile`)
+- **Google Gen AI SDK** (`gemini-2.5-flash`)
+- Custom **Two-Phase Action Confirmation Protocol**
+
+---
+
+## 🏗️ Architecture & Database Schema
+
+### System Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│                             CLIENT LAYER (Vite)                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Student    │  │  Organizer   │  │College Admin │  │ Super Admin  │  │
+│  │  Dashboard   │  │  Dashboard   │  │  Dashboard   │  │  Dashboard   │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │
+│         └─────────────────┼─────────────────┼─────────────────┘         │
+│                           ▼                                             │
+│                 Floating AIChatWidget & ConfirmationCard                │
+└───────────────────────────┬────────────────────────────────────────────────┘
+                            │ REST API / JWT
+                            ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                            BACKEND LAYER (Express)                         │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
+│  │ Auth Router │  │ Event Router│  │Admin Router │  │ SuperAdmin  │  │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  │
+│                           │                                             │
+│                           ▼                                             │
+│              AI Orchestration Engine (ai.service.js)                    │
+│             ┌───────────────────┬───────────────────┐                   │
+│             ▼                   ▼                   ▼                   │
+│         Groq Llama          Gemini 2.5           Fallback               │
+│          3.3 70B              Flash               Engine                │
+└───────────────────────────┬────────────────────────────────────────────────┘
+                            │ Mongoose ORM
+                            ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                            DATABASE (MongoDB Atlas)                        │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Database Entity Relationships
+
+```
+┌──────────────────┐        ┌──────────────────┐        ┌──────────────────┐
+│      USERS       │        │     COLLEGES     │        │      EVENTS      │
+├──────────────────┤        ├──────────────────┤        ├──────────────────┤
+│ _id (ObjectId)   │───────►│ _id (ObjectId)   │◄───────│ _id (ObjectId)   │
+│ email            │        │ name             │        │ title            │
+│ password         │        │ location         │        │ collegeId (FK)   │
+│ role (enum)      │        │ emailDomain      │        │ createdBy (FK)   │
+│ collegeId (FK)   │        │ isVerified       │        │ maxSlots         │
+│ isApproved       │        └──────────────────┘        │ isApproved       │
+└────────┬─────────┘                                    │ isDeleted        │
+         │                                              └────────┬─────────┘
+         │                                                       │
+         └──────────────────────┐       ┌────────────────────────┘
+                                ▼       ▼
+                      ┌──────────────────┐
+                      │  REGISTRATIONS   │
+                      ├──────────────────┤
+                      │ _id (ObjectId)   │
+                      │ user (FK)        │
+                      │ event (FK)       │
+                      │ isTeamRegistration│
+                      │ registrationAt   │
+                      └──────────────────┘
+```
+
+---
+
+## 🔒 Data Security & Validation
+
+- **Password Hashing**: Bcrypt with 10 salt rounds.
+- **JWT Protection**: Signed token verification with role authorization rules (`protect(['superadmin'])`).
+- **Input Sanitization**: Regex queries escaped for MongoDB safety.
+- **No Secret Leaks**: `.env` files strictly ignored via `.gitignore`; templates provided in `.env.example`.
+
+---
+
+## 🚀 Installation & Quick Start
 
 ### Prerequisites
+- Node.js 20+
+- MongoDB Atlas database connection string
 
-- Node.js (v18+ recommended)
-- npm
-- MongoDB database (local or Atlas)
-- Cloudinary account (for poster upload)
-- Email provider credentials (SMTP/Resend)
-
-### 1) Clone repository
-
+### 1. Clone the Repository
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Siva-2517/CollegeSphere.git
 cd CollegeSphere
 ```
 
-### 2) Install dependencies
-
+### 2. Backend Setup
 ```bash
 cd server
 npm install
+cp .env.example .env
+# Edit .env with your MONGO_URI, JWT_SECRET, GROQ_API_KEY, GEMINI_API_KEY
+npm run dev
+```
+
+### 3. Frontend Setup
+```bash
 cd ../client
 npm install
+cp .env.example .env
+# Edit .env with VITE_API_URL=http://localhost:5000
+npm run dev
 ```
 
-### 3) Configure environment variables
+---
 
-Create `server/.env` and add:
+## 📡 Environment Variables
 
+### Backend (`server/.env`)
 ```env
 PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-RESEND_API_KEY=your_resend_key
-EMAIL_USER=your_email_user
-EMAIL_PASS=your_email_password
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 CLIENT_URL=http://localhost:5173
-GEMINI_API_KEY=your_gemini_api_key
-GROQ_API_KEY=your_groq_api_key
+MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/CollegeSphere
+JWT_SECRET=your_jwt_secret_key_here
+
+# AI Agent API Keys
+GROQ_API_KEY=gsk_your_groq_api_key
+GEMINI_API_KEY=AIzaSy_your_gemini_api_key
 ```
 
-### 4) Run the project
-
-Open two terminals:
-
-**Terminal 1 (Backend)**
-
-```bash
-cd server
-npm run dev
+### Frontend (`client/.env`)
+```env
+VITE_API_URL=http://localhost:5000
 ```
 
-**Terminal 2 (Frontend)**
+---
 
-```bash
-cd client
-npm run dev
+## 📡 API Endpoints Specification
+
+### Authentication (`/api/auth`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| POST | `/api/auth/send-otp` | Public | Send verification OTP to email |
+| POST | `/api/auth/register` | Public | Register new student or organizer |
+| POST | `/api/auth/login` | Public | Authenticate user & get token |
+| GET | `/api/auth/google` | Public | Initiate Google OAuth 2.0 flow |
+| GET | `/api/auth/profile` | Protected | Get current user profile details |
+| PUT | `/api/auth/profile` | Protected | Update profile name and password |
+
+### Event Registrations (`/api/registration`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| POST | `/api/registration/register` | Student | Register student for an event (solo/team) |
+| GET | `/api/registration/my-registrations` | Student | List all bookings for current student |
+| DELETE | `/api/registration/cancel/:id` | Student | Cancel student registration |
+
+### Events Management (`/api/event`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/api/event/all` | Public | List all approved, non-deleted events |
+| GET | `/api/event/college/:collegeId` | Public | List events by college ID |
+| POST | `/api/event/create` | Organizer/Admin | Create a new event draft |
+| DELETE | `/api/event/:eventId` | Organizer/Admin | Soft-delete an event |
+
+### College Admin (`/api/admin`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/api/admin/organizers/pending` | College Admin | List pending organizers for college |
+| PUT | `/api/admin/organizers/:id/approve` | College Admin | Approve organizer account |
+| PUT | `/api/admin/organizers/:id/reject` | College Admin | Reject organizer account |
+| GET | `/api/admin/events/pending` | College Admin | List pending events for college |
+| PUT | `/api/admin/events/:id/approve` | College Admin | Approve & publish event |
+| DELETE | `/api/admin/events/:id/reject` | College Admin | Reject event draft |
+
+### System Super Admin (`/api/superadmin`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/api/superadmin/stats` | SuperAdmin | System-wide health & DB metrics |
+| GET | `/api/superadmin/users` | SuperAdmin | List all platform users across roles |
+| PUT | `/api/superadmin/users/:id/role` | SuperAdmin | Assign or change user role |
+| POST | `/api/superadmin/colleges` | SuperAdmin | Create new college institution |
+| PUT | `/api/superadmin/colleges/:id/verify` | SuperAdmin | Toggle college verification status |
+| DELETE | `/api/superadmin/colleges/:id` | SuperAdmin | Delete college institution |
+| GET | `/api/superadmin/events/deleted` | SuperAdmin | List soft-deleted events (Trash Bin) |
+| PUT | `/api/superadmin/events/:id/restore` | SuperAdmin | Restore soft-deleted event |
+| DELETE | `/api/superadmin/events/:id/permanent` | SuperAdmin | Permanently delete event record |
+
+### SphereAI Agent (`/api/ai`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| POST | `/api/ai/chat` | Protected | Interactive LLM chat with tool calling & confirmation cards |
+
+
+---
+
+## 📁 Project Structure
+
+```
+CollegeSphere/
+├── server/
+│   ├── config/              # Database & Passport OAuth setup
+│   ├── controllers/         # Auth, Event, Admin, SuperAdmin, AI controllers
+│   ├── middleware/          # JWT Protection & Role Authorization
+│   ├── modals/              # Mongoose Schemas (User, Event, College, Registration)
+│   ├── routes/              # Express Routers (/api/auth, /api/event, /api/superadmin, /api/ai)
+│   ├── services/            # ai.service.js (Groq, Gemini, Fallback Engine)
+│   ├── tools/               # ai.tools.js (Role-based Tool Handlers)
+│   ├── server.js            # Express Entry Point
+│   └── .env.example
+│
+├── client/
+│   ├── src/
+│   │   ├── api/             # Axios instance & Interceptors
+│   │   ├── components/      # AIChatWidget, ConfirmationCard, UI Components
+│   │   ├── pages/           # Student, Organizer, Admin, SuperAdmin Dashboards, Landing, Login, Register
+│   │   ├── App.jsx          # Router & Dashboard Routes
+│   │   └── main.jsx
+│   └── .env.example
+│
+└── README.md
 ```
 
-Frontend default: `http://localhost:5173`  
-Backend default: `http://localhost:5000`
+---
 
-## Usage
+## 📄 License & Author
 
-- Register as `student` or `organizer` using OTP verification
-- Login and access role-based dashboard
-- Organizer creates events (pending admin approval)
-- Admin approves/rejects organizers and events
-- Students browse approved events and register (solo/team)
+Distributed under the **MIT License**.
 
-## Sample Input / Output
+**Author**: [Siva](https://github.com/Siva-2517)
 
-### Sample API: Send OTP
-
-**Request**
-
-`POST /api/auth/send-otp`
-
-```json
-{
-  "email": "student@example.com"
-}
-```
-
-**Response (200)**
-
-```json
-{
-  "msg": "OTP sent successfully to your email"
-}
-```
-
-### Sample API: Login
-
-**Request**
-
-`POST /api/auth/login`
-
-```json
-{
-  "email": "student@example.com",
-  "password": "password123"
-}
-```
-
-**Response (200)**
-
-```json
-{
-  "msg": "Login successful",
-  "token": "<jwt-token>",
-  "user": {
-    "id": "...",
-    "name": "Student Name",
-    "email": "student@example.com",
-    "role": "student"
-  }
-}
-```
-
-## Future Enhancements
-
-- Real-time notifications for approval status and event updates
-- Advanced search, filters, and recommendation engine
-- Payment integration for paid events
-- Calendar sync (Google/Outlook)
-- CI/CD pipeline, automated testing, and API documentation (OpenAPI)
-
-## Author
-
-- **Siva Surya P**
-- LinkedIn: `https://www.linkedin.com/in/sivasurya-tech`
-- Email: `sivatechie17@gmail.com`
+<p align="center">
+  Built with ❤️ for Seamless College Event Governance
+</p>
