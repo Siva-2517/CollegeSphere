@@ -142,9 +142,23 @@ exports.createEvent = async (req, res) => {
 };
 
 
+// Helper to auto soft-delete events whose date has passed
+const autoSoftDeletePassedEvents = async () => {
+  try {
+    await Event.updateMany(
+      { date: { $lt: new Date() }, isDeleted: { $ne: true } },
+      { $set: { isDeleted: true } }
+    );
+  } catch (err) {
+    console.error('Auto soft-delete error:', err.message);
+  }
+};
+
 exports.getAllEvents = async (req, res) => {
   try {
-    const events = await Event.find({ isApproved: true })
+    await autoSoftDeletePassedEvents();
+
+    const events = await Event.find({ isApproved: true, isDeleted: { $ne: true } })
       .populate('collegeId', 'name location')
       .populate('createdBy', 'name email')
       .sort({ date: 1 });
@@ -181,7 +195,8 @@ exports.getAllEvents = async (req, res) => {
 // controllers/event.controller.js
 exports.getMyEvents = async (req, res) => {
   try {
-    const events = await Event.find({ createdBy: req.user.Id })
+    await autoSoftDeletePassedEvents();
+    const events = await Event.find({ createdBy: req.user.Id, isDeleted: { $ne: true } })
       .populate('collegeId', 'name')
       .sort({ createdAt: -1 });
 
@@ -198,10 +213,13 @@ exports.getEventsByCollege = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(collegeId)) {
       return res.status(400).json({ message: 'Invalid college ID' });
     }
-    const events = await Event.find({ collegeId, isApproved: true })
+    await autoSoftDeletePassedEvents();
+
+    const events = await Event.find({ collegeId, isApproved: true, isDeleted: { $ne: true } })
       .populate('collegeId', 'name location')
       .populate('createdBy', 'name email')
       .sort({ date: 1 });
+
 
     // Transform events to match frontend expectations
     const transformedEvents = events.map(event => ({
@@ -361,12 +379,13 @@ exports.deleteEvent = async (req, res) => {
       });
     }
 
-    // 5️⃣ Delete event
-    await Event.findByIdAndDelete(eventId);
+    // 5️⃣ Soft Delete event
+    await Event.findByIdAndUpdate(eventId, { isDeleted: true });
 
     res.status(200).json({
-      message: "Event deleted successfully"
+      message: "Event soft deleted successfully"
     });
+
   } catch (err) {
     console.error("Error deleting event:", err);
     res.status(500).json({ error: err.message });

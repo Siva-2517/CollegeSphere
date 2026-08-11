@@ -42,10 +42,12 @@ export default function Login() {
 
 
   const redirectBasedOnRole = (role) => {
-    if (role === 'admin') navigate('/admin/dashboard');
+    if (role === 'superadmin') navigate('/superadmin/dashboard');
+    else if (role === 'admin') navigate('/admin/dashboard');
     else if (role === 'organizer') navigate('/organizer/dashboard');
     else navigate('/student/dashboard');
   };
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -299,10 +301,11 @@ export default function Login() {
                 </>
               ) : (
                 <>
-                  <LogIn className="w-5 h-5" />
+                  <Sparkles className="w-5 h-5" />
                   Sign In
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </>
+
               )}
             </button>
             {/* Divider */}

@@ -5,12 +5,14 @@ const Registration = require('../modals/Registration');
 
 const getStats = async (req, res) => {
     try {
+        const collegeFilter = (req.user?.role === 'admin' && req.user?.collegeId) ? { collegeId: req.user.collegeId } : {};
+
         const totalUsers = await User.countDocuments();
         const totalColleges = await College.countDocuments();
-        const totalEvents = await Event.countDocuments();
+        const totalEvents = await Event.countDocuments({ ...collegeFilter, isDeleted: { $ne: true } });
         const totalRegistrations = await Registration.countDocuments();
-        const totalOrganizers = await User.countDocuments({ role: 'organizer' });
-        const pendingApprovals = await User.countDocuments({ role: 'organizer', isApproved: false });
+        const totalOrganizers = await User.countDocuments({ ...collegeFilter, role: 'organizer' });
+        const pendingApprovals = await User.countDocuments({ ...collegeFilter, role: 'organizer', isApproved: false });
 
         res.status(200).json({
             success: true,
@@ -36,7 +38,7 @@ const getStats = async (req, res) => {
 const getPublicStats = async (req, res) => {
     try {
         const totalColleges = await College.countDocuments();
-        const totalEvents = await Event.countDocuments({ isApproved: true });
+        const totalEvents = await Event.countDocuments({ isApproved: true, isDeleted: { $ne: true } });
         const totalStudents = await User.countDocuments({ role: 'student' });
 
         res.status(200).json({
@@ -53,5 +55,6 @@ const getPublicStats = async (req, res) => {
         });
     }
 };
+
 
 module.exports = { getStats, getPublicStats };

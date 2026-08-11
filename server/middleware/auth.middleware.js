@@ -20,10 +20,16 @@ exports.protect= (roles=[])=>{
             });
             }
 
-            if(roles.length && !roles.includes(req.user.role)){
-                return res.status(403).json({msg:'User role not authorized'})
+            // Superadmin has inherited access across admin endpoints
+            const isAuthorized = !roles.length || 
+              roles.includes(req.user.role) || 
+              (req.user.role === 'superadmin' && (roles.includes('admin') || roles.includes('organizer') || roles.includes('student')));
+
+            if (!isAuthorized) {
+              return res.status(403).json({ msg: 'User role not authorized' });
             }
             next();
+
         }
         catch(err){
             console.error('Auth middleware error:', err.message)

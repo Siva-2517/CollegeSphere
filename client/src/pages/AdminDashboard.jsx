@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Users, Calendar, Building2, LogOut, CheckCircle, XCircle, Clock, AlertCircle, TrendingUp, Sparkles, Search, Download, Menu, X as CloseIcon, Edit } from 'lucide-react';
 import api from '../api/axios';
+import AIChatWidget from '../components/ai/AIChatWidget';
 
 const AnimatedCounter = ({ end, duration = 1000 }) => {
   const [count, setCount] = useState(0);
@@ -1022,12 +1023,13 @@ export default function AdminDashboard() {
                   </button>
                 )}
                 <button
-                  onClick={() => setCollegeModal({ isOpen: true })}
+                  onClick={() => setActiveTab('organizers')}
                   className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg font-semibold hover:scale-105 transition-all flex items-center gap-2 justify-center"
                 >
-                  <Building2 className="w-5 h-5" />
-                  Create College
+                  <Users className="w-5 h-5" />
+                  Manage Organizers
                 </button>
+
               </div>
             </div>
           </div>
@@ -1593,16 +1595,7 @@ export default function AdminDashboard() {
         message={`Are you sure you want to ${confirmModal.type} ${confirmModal.organizerName}? This action cannot be undone.`}
       />
 
-      <CollegeModal
-        isOpen={collegeModal.isOpen}
-        onClose={() => {
-          setCollegeModal({ isOpen: false });
-          setCollegeForm({ name: '', location: '', emailDomain: '' });
-        }}
-        onSubmit={handleCreateCollege}
-        form={collegeForm}
-        setForm={setCollegeForm}
-      />
+
 
       {/* Poster Preview Modal */}
       <PosterPreviewModal
@@ -1619,6 +1612,9 @@ export default function AdminDashboard() {
         user={user}
         onSave={handleProfileUpdate}
       />
+
+      {/* AI Assistant Widget */}
+      <AIChatWidget userRole="admin" userName={user?.name || 'Admin'} />
     </div>
   );
 }

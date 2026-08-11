@@ -8,6 +8,7 @@ import OrganizerDashboard from './pages/OrganizerDashboard.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
 import GoogleCallback from './pages/GoogleCallback.jsx';
 import CompleteProfile from './pages/CompleteProfile.jsx';
+import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 
 function App() {
   return (
@@ -16,13 +17,14 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
         <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/auth/google/callback" element={<GoogleCallback />} />
         <Route path="/complete-profile" element={<CompleteProfile />} />
-
       </Routes>
   );
 }
+
 
 export default App;

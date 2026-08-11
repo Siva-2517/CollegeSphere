@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Users, LogOut, PlusCircle, Edit, Trash2, X, AlertCircle, CheckCircle, TrendingUp, Clock, Sparkles, Search, Download, BarChart3, Menu, X as CloseIcon } from 'lucide-react';
 import api from '../api/axios';
+import AIChatWidget from '../components/ai/AIChatWidget';
 
 const AnimatedCounter = ({ end, duration = 1000 }) => {
     const [count, setCount] = useState(0);
@@ -1568,6 +1569,9 @@ export default function OrganizerDashboard() {
                 posterUrl={posterPreview.url}
                 title={posterPreview.title}
             />
+
+            {/* AI Assistant Widget */}
+            <AIChatWidget userRole="organizer" userName={user?.name || 'Organizer'} />
         </div>
     );
 }

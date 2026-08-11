@@ -89,9 +89,10 @@ exports.register = async (req, res) => {
         const allowedRoles = ['organizer', 'student']
         const safeRole = allowedRoles.includes(role) ? role : 'student'
 
-        if (role === 'admin') {
-            return res.status(403).json({ msg: 'Cannot register as admin' })
+        if (role === 'admin' || role === 'superadmin') {
+            return res.status(403).json({ msg: 'Cannot self-register as admin or superadmin' })
         }
+
         const newUser = await User.create({
             name,
             email,
@@ -210,9 +211,12 @@ exports.login = async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                isApproved: user.isApproved || false,
+                collegeId: user.collegeId || null
             }
         })
+
     }
     catch (err) {
         console.error(err)
@@ -315,6 +319,8 @@ exports.googleCallback = async (req, res) => {
             email: user.email,
             role: user.role,
             avatar: user.avatar || '',
+            isApproved: user.isApproved || false,
+            collegeId: user.collegeId || null,
             isProfileComplete: user.isProfileComplete !== false
         };
 
@@ -448,9 +454,12 @@ exports.completeProfile = async (req, res) => {
                 email: user.email,
                 role: user.role,
                 avatar: user.avatar || '',
+                isApproved: user.isApproved,
+                collegeId: user.collegeId,
                 isProfileComplete: true
             }
         });
+
     } catch (err) {
         console.error('Complete profile error:', err);
         res.status(500).json({ msg: 'Failed to complete profile', error: err.message });

@@ -449,8 +449,9 @@ export default function Register() {
               </div>
             </div>
 
-            {/* College Selection (for admin and organizer only) */}
+            {/* College Selection (for student and organizer) */}
             {((formData.role === 'organizer' || formData.role === 'student')) && (
+
               <div className="animate-fadeInUp">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Select Your College
@@ -511,6 +512,7 @@ export default function Register() {
                 </>
               ) : (
                 <>
+                  <Sparkles className="w-5 h-5" />
                   Create Account
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </>

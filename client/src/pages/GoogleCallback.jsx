@@ -28,9 +28,11 @@ export default function GoogleCallback() {
             navigate('/complete-profile');
           } else {
             // Redirect based on role
-            if (user.role === 'admin') navigate('/admin/dashboard');
+            if (user.role === 'superadmin') navigate('/superadmin/dashboard');
+            else if (user.role === 'admin') navigate('/admin/dashboard');
             else if (user.role === 'organizer') navigate('/organizer/dashboard');
             else navigate('/student/dashboard');
+
           }
         }, 1500);
       } catch (err) {

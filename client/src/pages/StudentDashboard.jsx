@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Clock, Users, LogOut, Home, BookOpen, Trophy, Sparkles, Search, Filter, AlertCircle, CheckCircle, XCircle, ArrowRight, Menu, X as CloseIcon, BarChart3, Edit } from 'lucide-react';
 import api from '../api/axios';
+import AIChatWidget from '../components/ai/AIChatWidget';
 
 // Animated Counter Component
 const AnimatedCounter = ({ end, duration = 1000 }) => {
@@ -1504,6 +1505,9 @@ export default function StudentDashboard() {
         event={teamRegModal.event}
         onRegister={handleTeamRegister}
       />
+
+      {/* AI Assistant Widget */}
+      <AIChatWidget userRole="student" userName={user?.name || 'Student'} />
     </div>
   );
 }

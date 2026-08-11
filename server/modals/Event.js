@@ -79,7 +79,17 @@ const EventSchema = new mongoose.Schema({
     isApproved: {
         type: Boolean,
         default: false
+    },
+    maxSlots: {
+        type: Number,
+        default: null
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
+
+
 
 module.exports = mongoose.model('Event', EventSchema);

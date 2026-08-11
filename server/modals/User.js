@@ -32,9 +32,10 @@ const userSchema = new mongoose.Schema(
         },
         role: {
             type: String,
-            enum: ['student', 'admin', 'organizer'],
+            enum: ['student', 'admin', 'organizer', 'superadmin'],
             default: 'student'
         },
+
         isApproved: {
             type: Boolean,
             default: false

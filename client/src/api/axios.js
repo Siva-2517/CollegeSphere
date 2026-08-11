@@ -27,13 +27,17 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Token expired or invalid
-            localStorage.removeItem('token');
-            localStorage.removeItem('role');
-            window.location.href = '/login';
+            const path = window.location.pathname;
+            // Avoid redirect loops on public pages
+            if (path !== '/' && !path.includes('/login') && !path.includes('/register') && !path.includes('/auth/google/callback')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }
 );
+
 
 export default api;

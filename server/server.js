@@ -12,19 +12,34 @@ const eventRoutes = require('./routes/event.routes')
 const collegeRoutes = require('./routes/college.routes')
 const regisRoutes = require('./routes/regis.routes')
 const adminRoutes = require('./routes/admin.routes')
+const aiRoutes = require('./routes/ai.routes')
+const superadminRoutes = require('./routes/superadmin.routes')
 connectDB()
 
 const app = express()
 
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'https://college-sphere-three.vercel.app'
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(null, true); // Permissive CORS for deployed client apps
+    }
+  },
   credentials: true
 }))
 app.use(express.json())
 
+
 // Session config (required for Passport OAuth flow)
 app.use(session({
-  secret: process.env.JWT_SECRET,
+  secret: process.env.JWT_SECRET || 'collegesphere_secret',
   resave: false,
   saveUninitialized: false,
   cookie: { secure: false }
@@ -39,6 +54,9 @@ app.use('/api/event', eventRoutes)
 app.use('/api/college', collegeRoutes)
 app.use('/api/registration', regisRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/ai', aiRoutes)
+app.use('/api/superadmin', superadminRoutes)
+
 
 
 app.get('/', (req, res) => {

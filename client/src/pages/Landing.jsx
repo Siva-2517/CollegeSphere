@@ -300,7 +300,12 @@ export default function Landing() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <button className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full font-semibold text-lg overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/50">
+              <button
+                onClick={() => {
+                  document.getElementById('upcoming-events')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full font-semibold text-lg overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/50 cursor-pointer"
+              >
                 <span className="relative z-10 flex items-center gap-2">
                   Explore Events
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -310,11 +315,12 @@ export default function Landing() {
 
               <button
                 onClick={() => navigate("/register")}
-                className="px-8 py-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full font-semibold text-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 hover:shadow-xl"
+                className="px-8 py-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full font-semibold text-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 hover:shadow-xl cursor-pointer"
               >
                 Login / Register
               </button>
             </div>
+
           </div>
 
           {/* Live Stats Preview */}
@@ -430,7 +436,8 @@ export default function Landing() {
       </section>
 
       {/* Upcoming Events */}
-      <section className="relative py-20 px-6">
+      <section id="upcoming-events" className="relative py-20 px-6">
+
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">

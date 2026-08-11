@@ -40,6 +40,17 @@ exports.registerForEvent = async (req, res) => {
       });
     }
 
+    // Check remaining slots if maxSlots is configured
+    if (event.maxSlots && event.maxSlots > 0) {
+      const currentRegCount = await Registration.countDocuments({ event: eventId });
+      if (currentRegCount >= event.maxSlots) {
+        return res.status(400).json({
+          message: 'Registration closed: Event has reached maximum capacity / no remaining slots'
+        });
+      }
+    }
+
+
     // Handle team event registration
     if (event.eventType === 'team') {
       if (!teamName || !teamName.trim()) {

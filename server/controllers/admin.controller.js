@@ -4,10 +4,15 @@ const sendEmail = require('../utils/sendEmail');
 
 const getPendingOrganizers = async (req, res) => {
     try {
-        const pendingOrganizers = await User.find({
-            role: 'organizer',
-            isApproved: false
-        }).populate('collegeId', 'name').select('-password');
+        const queryFilter = { role: 'organizer', isApproved: false };
+        if (req.user.role === 'admin' && req.user.collegeId) {
+            queryFilter.collegeId = req.user.collegeId;
+        }
+
+        const pendingOrganizers = await User.find(queryFilter)
+            .populate('collegeId', 'name')
+            .select('-password');
+            
         const organizersWithCollegeName = pendingOrganizers.map(organizer => ({
             ...organizer.toObject(),
             collegeName: organizer.collegeId?.name || 'N/A'
@@ -28,14 +33,18 @@ const getPendingOrganizers = async (req, res) => {
 
 const getApprovedOrganizers = async (req, res) => {
     try {
-        const approvedOrganizers = await User.find({
-            role: 'organizer',
-            isApproved: true
-        }).populate('collegeId', 'name').select('-password');
+        const queryFilter = { role: 'organizer', isApproved: true };
+        if (req.user.role === 'admin' && req.user.collegeId) {
+            queryFilter.collegeId = req.user.collegeId;
+        }
+
+        const approvedOrganizers = await User.find(queryFilter)
+            .populate('collegeId', 'name')
+            .select('-password');
 
         const organizersWithEventCount = await Promise.all(
             approvedOrganizers.map(async (organizer) => {
-                const eventsCount = await Event.countDocuments({ createdBy: organizer._id });
+                const eventsCount = await Event.countDocuments({ createdBy: organizer._id, isDeleted: { $ne: true } });
                 return {
                     ...organizer.toObject(),
                     collegeName: organizer.collegeId?.name || 'N/A',
@@ -56,6 +65,7 @@ const getApprovedOrganizers = async (req, res) => {
         });
     }
 };
+
 
 const approveOrganizer = async (req, res) => {
     try {
@@ -167,9 +177,14 @@ const rejectOrganizer = async (req, res) => {
 // Get pending events
 const getPendingEvents = async (req, res) => {
     try {
-        const pendingEvents = await Event.find({
-            isApproved: false
-        }).populate('collegeId', 'name').populate('createdBy', 'name email');
+        const queryFilter = { isApproved: false, isDeleted: { $ne: true } };
+        if (req.user.role === 'admin' && req.user.collegeId) {
+            queryFilter.collegeId = req.user.collegeId;
+        }
+
+        const pendingEvents = await Event.find(queryFilter)
+            .populate('collegeId', 'name')
+            .populate('createdBy', 'name email');
 
         res.status(200).json({
             success: true,
@@ -187,9 +202,14 @@ const getPendingEvents = async (req, res) => {
 // Get approved events
 const getApprovedEvents = async (req, res) => {
     try {
-        const approvedEvents = await Event.find({
-            isApproved: true
-        }).populate('collegeId', 'name').populate('createdBy', 'name email');
+        const queryFilter = { isApproved: true, isDeleted: { $ne: true } };
+        if (req.user.role === 'admin' && req.user.collegeId) {
+            queryFilter.collegeId = req.user.collegeId;
+        }
+
+        const approvedEvents = await Event.find(queryFilter)
+            .populate('collegeId', 'name')
+            .populate('createdBy', 'name email');
 
         res.status(200).json({
             success: true,
@@ -203,6 +223,7 @@ const getApprovedEvents = async (req, res) => {
         });
     }
 };
+
 
 // Approve event
 const approveEvent = async (req, res) => {
@@ -311,12 +332,16 @@ const rejectEvent = async (req, res) => {
     }
 };
 
-// Delete event
+// Delete event (Soft delete)
 const deleteEvent = async (req, res) => {
     try {
         const { eventId } = req.params;
 
-        const event = await Event.findByIdAndDelete(eventId);
+        const event = await Event.findByIdAndUpdate(
+            eventId,
+            { isDeleted: true },
+            { new: true }
+        );
 
         if (!event) {
             return res.status(404).json({
@@ -327,7 +352,7 @@ const deleteEvent = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Event deleted successfully'
+            message: 'Event soft deleted successfully'
         });
     } catch (error) {
         res.status(500).json({
@@ -337,6 +362,7 @@ const deleteEvent = async (req, res) => {
         });
     }
 };
+
 
 module.exports = {
     getPendingOrganizers,

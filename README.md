@@ -1,6 +1,6 @@
 # CollegeSphere
 
-A full-stack web application for managing inter-college events with role-based workflows for students, organizers, and admins.
+A full-stack web application for managing inter-college events with role-based workflows for students, organizers, college admins, and super admins, powered by an intelligent dual-LLM AI Agent (`SphereAI`).
 
 ## 🚀 Live Demo
 
@@ -11,26 +11,17 @@ Note: The backend is hosted on a free tier (Render), the first request may take 
 
 ## Overview
 
-CollegeSphere streamlines the complete college event lifecycle: event publishing, organizer approval, student registration, and admin moderation. It provides separate dashboards and protected APIs to support secure, role-based operations.
-
-## Problem Statement
-
-Many colleges still manage events through scattered forms, chats, and manual spreadsheets, which causes missed deadlines, duplicate entries, and poor visibility.
-
-CollegeSphere centralizes discovery, approvals, and registrations in one platform so students can register faster, organizers can manage events efficiently, and admins maintain governance.
+CollegeSphere streamlines the complete college event lifecycle: event publishing, organizer approval, student registration, soft-deletion recovery, and platform governance. It provides 4 specialized role-based dashboards and protected APIs to support secure multi-tenant operations.
 
 ## Key Features
 
-- Role-based authentication for `student`, `organizer`, and `admin`
-- OTP-based registration flow with email verification
-- Google OAuth (Single Sign-On) for quick registration and login
-- Organizer onboarding with admin approval workflow
-- Event creation, update, deletion, and approval lifecycle
-- Public and college-wise event listing APIs
-- Solo and team event registration with validation rules
-- Registration deadline enforcement and duplicate registration prevention
-- Transactional emails for OTP, account updates, and registration confirmations
-- Dashboards for Admin, Organizer, and Student workflows
+- **4-Role Permission System**: `student`, `organizer`, `admin` (College Admin), and `superadmin` (System Governance).
+- **SphereAI Conversational Agent**: Dual-LLM function calling engine (Groq Llama 3.3 70B + Gemini 2.5 Flash) with Two-Phase Action Confirmation Cards.
+- **Super Admin Governance Dashboard**: Multi-tenant college CRUD, user role promotion, trash bin recovery for soft-deleted events, and platform health diagnostics.
+- **College Admin Scoping**: College Admins moderate organizers and events strictly bound to their assigned institution.
+- **Event Lifecycle & Auto Soft-Deletion**: Automated soft-deletion (`isDeleted: true`) for passed events, remaining seat slot checks, and deadline validation.
+- **OTP Verification & Google OAuth 2.0**: Email verification and single sign-on with role completion flow.
+- **Transactional Email Workflows**: Automatic approval and welcome emails via Nodemailer/Resend.
 
 ## Tech Stack
 
@@ -155,6 +146,8 @@ GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 CLIENT_URL=http://localhost:5173
+GEMINI_API_KEY=your_gemini_api_key
+GROQ_API_KEY=your_groq_api_key
 ```
 
 ### 4) Run the project
