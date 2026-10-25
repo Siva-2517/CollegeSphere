@@ -1,8 +1,9 @@
 const mongoose = require('mongoose')
 
-const Event = require('../modals/Event');
-const College = require('../modals/College');
-const Registration = require('../modals/Registration');
+const Event = require('../models/Event');
+const College = require('../models/College');
+const Registration = require('../models/Registration');
+const User = require('../models/User');
 const uploadPoster = require('../utils/uploadPoster');
 const sendEmail = require('../utils/sendEmail');
 
@@ -118,7 +119,6 @@ exports.createEvent = async (req, res) => {
         `;
 
         // Get organizer email from user object or fetch from database
-        const User = require('../modals/User');
         const organizer = await User.findById(user.Id);
         if (organizer && organizer.email) {
           await sendEmail(organizer.email, emailSubject, emailHtml);

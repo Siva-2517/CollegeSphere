@@ -1,7 +1,7 @@
-const User = require('../modals/User');
-const College = require('../modals/College');
-const Event = require('../modals/Event');
-const Registration = require('../modals/Registration');
+const User = require('../models/User');
+const College = require('../models/College');
+const Event = require('../models/Event');
+const Registration = require('../models/Registration');
 const mongoose = require('mongoose');
 
 // @desc    Get system-wide health and metric overview for Super Admin

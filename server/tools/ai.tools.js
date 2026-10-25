@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
-const Event = require('../modals/Event');
-const Registration = require('../modals/Registration');
-const User = require('../modals/User');
-const College = require('../modals/College');
+const Event = require('../models/Event');
+const Registration = require('../models/Registration');
+const User = require('../models/User');
+const College = require('../models/College');
 const sendEmail = require('../utils/sendEmail');
 
 // ==========================================
@@ -412,7 +412,6 @@ const executeTool = async (name, args, userContext, isConfirmed = false) => {
       }
 
 
-      let newRegis;
       if (event.eventType === 'team') {
         if (!teamName || !teamName.trim()) return { error: 'Team name is required for team events.' };
         if (!participants || !Array.isArray(participants) || participants.length === 0) {
@@ -424,20 +423,48 @@ const executeTool = async (name, args, userContext, isConfirmed = false) => {
         if (event.maxTeamSize && participants.length > event.maxTeamSize) {
           return { error: `Team size cannot exceed ${event.maxTeamSize} members.` };
         }
+      }
 
-        newRegis = await Registration.create({
-          user: userId,
-          event: eventId,
-          isTeamRegistration: true,
-          teamName: teamName.trim(),
-          participants: participants.map(p => ({ name: p.name.trim(), email: p.email.trim().toLowerCase() }))
-        });
+      // Atomic update: stop two students taking the last seat at the same time
+      let seatReserved = false;
+      if (event.maxSlots && event.maxSlots > 0) {
+        const updatedEvent = await Event.findOneAndUpdate(
+          { _id: eventId, registeredCount: { $lt: event.maxSlots } },
+          { $inc: { registeredCount: 1 } },
+          { new: true }
+        );
+        if (!updatedEvent) {
+          return { error: 'Registration failed: This event has reached its maximum seat capacity / no remaining slots.' };
+        }
+        seatReserved = true;
       } else {
-        newRegis = await Registration.create({
-          user: userId,
-          event: eventId,
-          isTeamRegistration: false
-        });
+        await Event.findByIdAndUpdate(eventId, { $inc: { registeredCount: 1 } });
+        seatReserved = true;
+      }
+
+      let newRegis;
+      try {
+        if (event.eventType === 'team') {
+          newRegis = await Registration.create({
+            user: userId,
+            event: eventId,
+            isTeamRegistration: true,
+            teamName: teamName.trim(),
+            participants: participants.map(p => ({ name: p.name.trim(), email: p.email.trim().toLowerCase() }))
+          });
+        } else {
+          newRegis = await Registration.create({
+            user: userId,
+            event: eventId,
+            isTeamRegistration: false
+          });
+        }
+      } catch (createErr) {
+        // If Registration.create fails, decrement the count
+        if (seatReserved) {
+          await Event.findByIdAndUpdate(eventId, { $inc: { registeredCount: -1 } });
+        }
+        return { error: `Registration failed: ${createErr.message}` };
       }
 
       // Send confirmation email
@@ -480,6 +507,9 @@ const executeTool = async (name, args, userContext, isConfirmed = false) => {
       }
 
       await Registration.findByIdAndDelete(registrationId);
+      if (regis.event?._id) {
+        await Event.findByIdAndUpdate(regis.event._id, { $inc: { registeredCount: -1 } });
+      }
       return {
         success: true,
         message: `Successfully canceled registration for "${regis.event?.title || 'Event'}".`

@@ -1,5 +1,5 @@
-const User = require('../modals/User')
-const OTP = require('../modals/OTP')
+const User = require('../models/User')
+const OTP = require('../models/OTP')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const sendEmail = require('../utils/sendEmail')

@@ -1,5 +1,5 @@
-const User = require('../modals/User');
-const Event = require('../modals/Event');
+const User = require('../models/User');
+const Event = require('../models/Event');
 const sendEmail = require('../utils/sendEmail');
 
 const getPendingOrganizers = async (req, res) => {

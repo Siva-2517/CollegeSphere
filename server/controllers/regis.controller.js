@@ -1,5 +1,6 @@
-const Registration = require('../modals/Registration');
-const Event = require('../modals/Event');
+const Registration = require('../models/Registration');
+const Event = require('../models/Event');
+const User = require('../models/User');
 const mongoose = require('mongoose');
 const sendEmail = require('../utils/sendEmail');
 
@@ -40,18 +41,7 @@ exports.registerForEvent = async (req, res) => {
       });
     }
 
-    // Check remaining slots if maxSlots is configured
-    if (event.maxSlots && event.maxSlots > 0) {
-      const currentRegCount = await Registration.countDocuments({ event: eventId });
-      if (currentRegCount >= event.maxSlots) {
-        return res.status(400).json({
-          message: 'Registration closed: Event has reached maximum capacity / no remaining slots'
-        });
-      }
-    }
-
-
-    // Handle team event registration
+    // Handle team event registration validation
     if (event.eventType === 'team') {
       if (!teamName || !teamName.trim()) {
         return res.status(400).json({
@@ -101,18 +91,50 @@ exports.registerForEvent = async (req, res) => {
           });
         }
       }
+    }
 
-      // Create team registration
-      const newRegis = await Registration.create({
-        user: req.user.Id,
-        event: eventId,
-        isTeamRegistration: true,
-        teamName: teamName.trim(),
-        participants: participants.map(p => ({
-          name: p.name.trim(),
-          email: p.email.trim().toLowerCase()
-        }))
-      });
+    // Atomic update: stop two students taking the last seat at the same time
+    let seatReserved = false;
+    if (event.maxSlots && event.maxSlots > 0) {
+      const updatedEvent = await Event.findOneAndUpdate(
+        { _id: eventId, registeredCount: { $lt: event.maxSlots } },
+        { $inc: { registeredCount: 1 } },
+        { new: true }
+      );
+      if (!updatedEvent) {
+        return res.status(400).json({
+          message: 'Registration closed: Event has reached maximum capacity / no remaining slots'
+        });
+      }
+      seatReserved = true;
+    } else {
+      await Event.findByIdAndUpdate(eventId, { $inc: { registeredCount: 1 } });
+      seatReserved = true;
+    }
+
+    // Handle team event registration
+    if (event.eventType === 'team') {
+      let newRegis;
+      try {
+        newRegis = await Registration.create({
+          user: req.user.Id,
+          event: eventId,
+          isTeamRegistration: true,
+          teamName: teamName.trim(),
+          participants: participants.map(p => ({
+            name: p.name.trim(),
+            email: p.email.trim().toLowerCase()
+          }))
+        });
+      } catch (createErr) {
+        if (seatReserved) {
+          await Event.findByIdAndUpdate(eventId, { $inc: { registeredCount: -1 } });
+        }
+        if (createErr.code === 11000) {
+          return res.status(400).json({ message: 'You have already registered for this event' });
+        }
+        return res.status(500).json({ message: 'Failed to create registration', error: createErr.message });
+      }
 
       await newRegis.populate({
         path: 'event',
@@ -125,7 +147,6 @@ exports.registerForEvent = async (req, res) => {
 
       // Send registration confirmation email to team leader
       try {
-        const User = require('../modals/User');
         const student = await User.findById(req.user.Id);
 
         if (student && student.email) {
@@ -193,12 +214,23 @@ exports.registerForEvent = async (req, res) => {
       });
     }
 
-    // Handle solo event registration (existing logic)
-    const newRegis = await Registration.create({
-      user: req.user.Id,
-      event: eventId,
-      isTeamRegistration: false
-    });
+    // Handle solo event registration
+    let newRegis;
+    try {
+      newRegis = await Registration.create({
+        user: req.user.Id,
+        event: eventId,
+        isTeamRegistration: false
+      });
+    } catch (createErr) {
+      if (seatReserved) {
+        await Event.findByIdAndUpdate(eventId, { $inc: { registeredCount: -1 } });
+      }
+      if (createErr.code === 11000) {
+        return res.status(400).json({ message: 'You have already registered for this event' });
+      }
+      return res.status(500).json({ message: 'Failed to create registration', error: createErr.message });
+    }
 
     await newRegis.populate({
       path: 'event',
@@ -211,7 +243,6 @@ exports.registerForEvent = async (req, res) => {
 
     // Send registration confirmation email to student
     try {
-      const User = require('../modals/User');
       const student = await User.findById(req.user.Id);
 
       if (student && student.email) {
@@ -339,6 +370,8 @@ exports.cancelRegistration = async (req, res) => {
     if (!registration) {
       return res.status(404).json({ message: 'Registration not found' });
     }
+    // Decrement registeredCount on Event
+    await Event.findByIdAndUpdate(registration.event, { $inc: { registeredCount: -1 } });
     res.status(200).json({ message: 'Registration cancelled successfully' });
   }
   catch (err) {

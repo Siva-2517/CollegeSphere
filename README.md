@@ -344,7 +344,7 @@ CollegeSphere/
 │   ├── config/              # Database & Passport OAuth setup
 │   ├── controllers/         # Auth, Event, Admin, SuperAdmin, AI controllers
 │   ├── middleware/          # JWT Protection & Role Authorization
-│   ├── modals/              # Mongoose Schemas (User, Event, College, Registration)
+│   ├── models/              # Mongoose Schemas (User, Event, College, Registration)
 │   ├── routes/              # Express Routers (/api/auth, /api/event, /api/superadmin, /api/ai)
 │   ├── services/            # ai.service.js (Groq, Gemini, Fallback Engine)
 │   ├── tools/               # ai.tools.js (Role-based Tool Handlers)

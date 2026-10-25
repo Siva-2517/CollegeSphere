@@ -1,4 +1,4 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
 const EventSchema = new mongoose.Schema({
     title: {
@@ -84,12 +84,15 @@ const EventSchema = new mongoose.Schema({
         type: Number,
         default: null
     },
+    registeredCount: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     isDeleted: {
         type: Boolean,
         default: false
     }
 }, { timestamps: true });
-
-
 
 module.exports = mongoose.model('Event', EventSchema);

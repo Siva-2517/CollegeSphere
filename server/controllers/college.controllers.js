@@ -1,4 +1,4 @@
-const College = require('../modals/College')
+const College = require('../models/College')
 
 exports.createCollege = async (req, res) => {
     try {
