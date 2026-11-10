@@ -1,16 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Building2, Users, Calendar, LogOut, CheckCircle, XCircle, Plus, Search, Edit3, Trash2, UserCheck, RefreshCw, BarChart3, AlertCircle, Sparkles, RotateCcw, Activity, Key, Cpu, User, Lock } from 'lucide-react';
+import {
+  Shield,
+  Building2,
+  Users,
+  Calendar,
+  LogOut,
+  CheckCircle,
+  XCircle,
+  Plus,
+  Search,
+  Trash2,
+  RefreshCw,
+  BarChart3,
+  AlertCircle,
+  RotateCcw,
+  Activity,
+  User,
+  Lock,
+  GraduationCap
+} from 'lucide-react';
 import api from '../api/axios';
+import { formatDate } from '../utils/formatDate';
+import StatCard from '../components/common/StatCard';
 import AIChatWidget from '../components/ai/AIChatWidget';
 
-const SuperAdminDashboard = () => {
+export default function SuperAdminDashboard() {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState(null);
   const [colleges, setColleges] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [eventsList, setEventsList] = useState([]);
   const [deletedEvents, setDeletedEvents] = useState([]);
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'colleges' | 'users' | 'events' | 'trash' | 'diagnostics' | 'profile'
+  const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -19,47 +40,80 @@ const SuperAdminDashboard = () => {
   const [isCollegeModalOpen, setIsCollegeModalOpen] = useState(false);
   const [newCollege, setNewCollege] = useState({ name: '', location: '', emailDomain: '' });
 
-  // Profile Edit Modal State
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [profileForm, setProfileForm] = useState({ name: '', email: '', currentPassword: '', newPassword: '' });
+  // Profile Form State
+  const [profileForm, setProfileForm] = useState({ name: '', currentPassword: '', newPassword: '' });
+  const [profileMessage, setProfileMessage] = useState('');
 
   useEffect(() => {
-    fetchInitialData();
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+
+    if (!token || !storedUser) {
+      window.location.href = '/login';
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(storedUser);
+      if (parsed.role !== 'superadmin') {
+        window.location.href = '/login';
+        return;
+      }
+      setUser(parsed);
+      setProfileForm((prev) => ({ ...prev, name: parsed.name || '' }));
+      fetchInitialData();
+    } catch (e) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
   }, []);
 
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch current profile
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser);
-        setUser(parsed);
-        setProfileForm(prev => ({ ...prev, name: parsed.name || '', email: parsed.email || '' }));
+      // 1. Fetch SuperAdmin Stats
+      try {
+        const { data: statsRes } = await api.get('/api/superadmin/stats');
+        setStats(statsRes.stats);
+      } catch (err) {
+        console.error('Stats error:', err);
       }
 
-      // 2. Fetch SuperAdmin Stats
-      const { data: statsRes } = await api.get('/api/superadmin/stats');
-      setStats(statsRes.stats);
+      // 2. Fetch Colleges
+      try {
+        const { data: collegeRes } = await api.get('/api/college/all');
+        setColleges(collegeRes.colleges || collegeRes || []);
+      } catch (err) {
+        console.error('Colleges error:', err);
+      }
 
-      // 3. Fetch Colleges
-      const { data: collegeRes } = await api.get('/api/college/all');
-      setColleges(collegeRes.colleges || collegeRes || []);
+      // 3. Fetch System Users
+      try {
+        const { data: userRes } = await api.get('/api/superadmin/users');
+        setUsersList(userRes.users || []);
+      } catch (err) {
+        console.error('Users error:', err);
+      }
 
-      // 4. Fetch System Users
-      const { data: userRes } = await api.get('/api/superadmin/users');
-      setUsersList(userRes.users || []);
+      // 4. Fetch Active & Pending Events
+      try {
+        const { data: eventRes } = await api.get('/api/admin/events/approved');
+        const { data: pendingEventRes } = await api.get('/api/admin/events/pending');
+        setEventsList([...(eventRes.data || []), ...(pendingEventRes.data || [])]);
+      } catch (err) {
+        console.error('Events error:', err);
+      }
 
-      // 5. Fetch Active Events
-      const { data: eventRes } = await api.get('/api/admin/events/approved');
-      const { data: pendingEventRes } = await api.get('/api/admin/events/pending');
-      setEventsList([...(eventRes.data || []), ...(pendingEventRes.data || [])]);
-
-      // 6. Fetch Soft-Deleted Events (Trash Bin)
-      const { data: deletedRes } = await api.get('/api/superadmin/events/deleted');
-      setDeletedEvents(deletedRes.events || []);
+      // 5. Fetch Soft-Deleted Events
+      try {
+        const { data: deletedRes } = await api.get('/api/superadmin/events/deleted');
+        setDeletedEvents(deletedRes.events || []);
+      } catch (err) {
+        console.error('Trash error:', err);
+      }
     } catch (err) {
-      console.error('SuperAdmin Dashboard Load Error:', err);
+      console.error('SuperAdmin load error:', err);
     } finally {
       setLoading(false);
     }
@@ -74,7 +128,7 @@ const SuperAdminDashboard = () => {
       setIsCollegeModalOpen(false);
       setNewCollege({ name: '', location: '', emailDomain: '' });
       fetchInitialData();
-      alert('College institution created successfully!');
+      alert('College institution added successfully!');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to create college');
     }
@@ -113,36 +167,53 @@ const SuperAdminDashboard = () => {
     try {
       await api.put(`/api/superadmin/events/${eventId}/restore`);
       fetchInitialData();
-      alert(`Event "${title}" restored successfully!`);
+      alert(`Event "${title}" restored to active schedule!`);
     } catch (err) {
       alert('Failed to restore event');
     }
   };
 
   const handlePermanentDeleteEvent = async (eventId, title) => {
-    if (!window.confirm(`Permanently delete "${title}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Permanently purge "${title}" from database? This cannot be undone.`)) return;
     try {
       await api.delete(`/api/superadmin/events/${eventId}/permanent`);
       fetchInitialData();
+      alert('Event permanently purged');
     } catch (err) {
       alert('Failed to permanently delete event');
     }
   };
 
+  // Fixed SuperAdmin Profile & Password Update (routes passwords to /api/auth/password)
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+    setProfileMessage('');
+
     try {
-      const { data } = await api.put('/api/auth/profile', {
-        name: profileForm.name,
-        currentPassword: profileForm.currentPassword,
-        newPassword: profileForm.newPassword
-      });
-      setUser(data.user);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setIsProfileModalOpen(false);
-      alert('Profile updated successfully!');
+      // 1. Update Name if modified
+      if (profileForm.name && profileForm.name !== user?.name) {
+        const { data } = await api.put('/api/auth/profile', { name: profileForm.name });
+        const updatedUser = { ...user, name: data.user?.name || profileForm.name };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+
+      // 2. Update Password if entered
+      if (profileForm.newPassword) {
+        if (!profileForm.currentPassword) {
+          alert('Current password is required to set a new password');
+          return;
+        }
+        await api.put('/api/auth/password', {
+          currentPassword: profileForm.currentPassword,
+          newPassword: profileForm.newPassword
+        });
+        setProfileForm((prev) => ({ ...prev, currentPassword: '', newPassword: '' }));
+      }
+
+      setProfileMessage('Settings saved successfully!');
     } catch (err) {
-      alert(err.response?.data?.msg || err.response?.data?.message || 'Failed to update profile');
+      alert(err.response?.data?.msg || err.response?.data?.message || 'Failed to update settings');
     }
   };
 
@@ -152,80 +223,72 @@ const SuperAdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-white font-sans relative overflow-x-hidden">
-      {/* Background Glow Orbs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-3xl animate-pulse top-[-100px] left-[-100px]" />
-        <div className="absolute w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-3xl animate-pulse bottom-[-150px] right-[-150px]" style={{ animationDelay: '1.5s' }} />
-        <div className="absolute w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-3xl animate-pulse top-1/2 left-1/3" style={{ animationDelay: '3s' }} />
-      </div>
-
-      {/* Header */}
-      <header className="bg-white/5 backdrop-blur-md border-b border-white/10 sticky top-0 z-40 px-6 py-4 flex items-center justify-between shadow-xl">
-        <div className="flex items-center gap-3.5">
-          <div className="p-2.5 bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 rounded-xl text-white shadow-lg shadow-amber-500/25">
-            <Shield className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="font-extrabold text-lg text-white flex items-center gap-2.5">
-              <span className="bg-gradient-to-r from-amber-300 via-orange-300 to-purple-300 bg-clip-text text-transparent">
-                CollegeSphere Super Admin
-              </span>
-              <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full shadow-inner">
-                System Governance
-              </span>
-            </h1>
-            <p className="text-xs text-gray-400">Multi-Tenant Platform Governance & Infrastructure Control</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setActiveTab('profile')}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all text-xs font-semibold"
-          >
-            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center font-bold text-slate-950 text-[11px]">
-              {user?.name?.[0]?.toUpperCase() || 'S'}
+    <div className="min-h-screen bg-surface-900 text-slate-100 font-sans selection:bg-brand-600 selection:text-white pb-16">
+      {/* Top Header */}
+      <header className="sticky top-0 z-40 bg-surface-900/95 backdrop-blur-md border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-sm">
+              <Shield className="w-6 h-6" />
             </div>
-            <span className="hidden sm:inline">{user?.name || 'Super Admin'}</span>
-          </button>
+            <div>
+              <span className="font-extrabold text-lg text-white block tracking-tight">
+                CollegeSphere System
+              </span>
+              <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+                Platform Governance & Multi-Tenant Control
+              </span>
+            </div>
+          </div>
 
-          <button
-            onClick={fetchInitialData}
-            className="p-2.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-all border border-white/5"
-            title="Refresh Data"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-red-600/80 to-rose-600/80 hover:from-red-600 hover:to-rose-600 text-white text-xs font-semibold rounded-xl border border-red-500/30 shadow-lg transition-all hover:scale-105"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setActiveTab('profile')}
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-slate-800 bg-surface-800 hover:bg-slate-700/60 transition-all text-xs font-semibold text-slate-200 cursor-pointer"
+            >
+              <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[11px]">
+                {user?.name?.[0]?.toUpperCase() || 'S'}
+              </div>
+              <span className="hidden sm:inline">{user?.name || 'Super Admin'}</span>
+            </button>
+
+            <button
+              onClick={fetchInitialData}
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+              title="Refresh Platform Data"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Navigation Tabs */}
-      <div className="bg-white/5 backdrop-blur-md border-b border-white/10 px-6 pt-3 flex gap-2 overflow-x-auto relative z-10">
+      {/* Tab Navigation */}
+      <div className="bg-surface-950/60 border-b border-slate-800 px-4 sm:px-6 flex gap-2 overflow-x-auto custom-scrollbar">
         {[
-          { id: 'overview', label: 'System Overview', icon: <BarChart3 className="w-4 h-4" /> },
-          { id: 'colleges', label: 'College Management', icon: <Building2 className="w-4 h-4" /> },
-          { id: 'users', label: 'User & Role Control', icon: <Users className="w-4 h-4" /> },
-          { id: 'events', label: 'Global Moderation', icon: <Calendar className="w-4 h-4" /> },
-          { id: 'trash', label: `Trash Bin (${deletedEvents.length})`, icon: <RotateCcw className="w-4 h-4" /> },
-          { id: 'diagnostics', label: 'Platform Health', icon: <Activity className="w-4 h-4" /> },
-          { id: 'profile', label: 'Admin Profile', icon: <User className="w-4 h-4" /> }
-        ].map(tab => (
+          { id: 'overview', label: 'Overview', icon: <BarChart3 className="w-4 h-4" /> },
+          { id: 'colleges', label: `Colleges (${colleges.length})`, icon: <Building2 className="w-4 h-4" /> },
+          { id: 'users', label: `Users (${usersList.length})`, icon: <Users className="w-4 h-4" /> },
+          { id: 'events', label: `Events (${eventsList.length})`, icon: <Calendar className="w-4 h-4" /> },
+          { id: 'trash', label: `Trash Archive (${deletedEvents.length})`, icon: <RotateCcw className="w-4 h-4" /> },
+          { id: 'diagnostics', label: 'Diagnostics', icon: <Activity className="w-4 h-4" /> },
+          { id: 'profile', label: 'Governance Profile', icon: <User className="w-4 h-4" /> }
+        ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer ${
               activeTab === tab.id
-                ? 'border-amber-400 text-amber-300 bg-amber-500/15 rounded-t-xl backdrop-blur-md shadow-md'
-                : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-t-xl'
+                ? 'border-amber-400 text-amber-300 bg-amber-500/10'
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
             }`}
           >
             {tab.icon}
@@ -234,174 +297,129 @@ const SuperAdminDashboard = () => {
         ))}
       </div>
 
-      <main className="p-6 max-w-7xl mx-auto space-y-6 relative z-10">
-        {/* OVERVIEW TAB */}
+      {/* Main Container */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 space-y-6">
+        {/* TAB 1: SYSTEM OVERVIEW */}
         {activeTab === 'overview' && stats && (
-          <div className="space-y-6 animate-fadeInUp">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-xl hover:border-amber-500/30 hover:scale-[1.02] transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Users</span>
-                  <div className="p-2.5 bg-indigo-500/20 text-indigo-300 rounded-xl border border-indigo-500/30">
-                    <Users className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="text-3xl font-black bg-gradient-to-r from-white via-indigo-100 to-indigo-300 bg-clip-text text-transparent">
-                  {stats.users?.total || 0}
-                </div>
-                <div className="text-[11px] text-gray-400 mt-2 flex gap-3">
-                  <span>Students: <strong className="text-indigo-300">{stats.users?.students}</strong></span>
-                  <span>Organizers: <strong className="text-indigo-300">{stats.users?.organizers}</strong></span>
-                </div>
-              </div>
-
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-xl hover:border-amber-500/30 hover:scale-[1.02] transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Colleges Listed</span>
-                  <div className="p-2.5 bg-amber-500/20 text-amber-300 rounded-xl border border-amber-500/30">
-                    <Building2 className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="text-3xl font-black bg-gradient-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-transparent">
-                  {stats.colleges?.total || 0}
-                </div>
-                <p className="text-[11px] text-gray-400 mt-2">Active inter-college institutions</p>
-              </div>
-
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-xl hover:border-amber-500/30 hover:scale-[1.02] transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Events</span>
-                  <div className="p-2.5 bg-emerald-500/20 text-emerald-300 rounded-xl border border-emerald-500/30">
-                    <Calendar className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="text-3xl font-black bg-gradient-to-r from-white via-emerald-100 to-emerald-300 bg-clip-text text-transparent">
-                  {stats.events?.total || 0}
-                </div>
-                <div className="text-[11px] text-gray-400 mt-2 flex gap-3">
-                  <span className="text-emerald-400">Approved: {stats.events?.approved}</span>
-                  <span className="text-amber-400">Pending: {stats.events?.pending}</span>
-                </div>
-              </div>
-
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-xl hover:border-amber-500/30 hover:scale-[1.02] transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Registrations</span>
-                  <div className="p-2.5 bg-purple-500/20 text-purple-300 rounded-xl border border-purple-500/30">
-                    <UserCheck className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="text-3xl font-black bg-gradient-to-r from-white via-purple-100 to-purple-300 bg-clip-text text-transparent">
-                  {stats.registrations?.total || 0}
-                </div>
-                <p className="text-[11px] text-gray-400 mt-2">Student event bookings</p>
-              </div>
-            </div>
-
-            {/* System Governance Banner */}
-            <div className="bg-gradient-to-r from-amber-950/40 via-purple-950/40 to-slate-900/60 backdrop-blur-md border border-amber-500/25 p-6 rounded-2xl shadow-xl relative overflow-hidden">
-              <div className="flex items-center gap-3 mb-2">
-                <Sparkles className="w-5 h-5 text-amber-400" />
-                <h3 className="font-bold text-white text-base">Super Admin Multi-Tenant Governance</h3>
-              </div>
-              <p className="text-xs text-gray-300 mb-5 max-w-3xl leading-relaxed">
-                As Super Admin, you maintain full platform control: verify new college institutions, elevate user roles (promote users to College Admin or Super Admin), oversee global event approvals, manage soft-deleted trash events, and inspect system diagnostics.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => setIsCollegeModalOpen(true)}
-                  className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-amber-500/25 transition-all hover:scale-105"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add College Institution
-                </button>
-                <button
-                  onClick={() => setActiveTab('users')}
-                  className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl flex items-center gap-2 border border-white/10 transition-all hover:scale-105"
-                >
-                  <Users className="w-4 h-4" />
-                  Manage User Roles
-                </button>
-              </div>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              <StatCard
+                icon={Users}
+                label="System Users"
+                value={stats.users?.total || usersList.length}
+                accent="brand"
+                trend={`Students: ${stats.users?.students || 0} | Leads: ${stats.users?.organizers || 0}`}
+              />
+              <StatCard
+                icon={Building2}
+                label="Partner Institutions"
+                value={stats.colleges?.total || colleges.length}
+                accent="indigo"
+                trend={`Verified: ${stats.colleges?.verified || 0}`}
+              />
+              <StatCard
+                icon={Calendar}
+                label="Total Event Records"
+                value={stats.events?.total || eventsList.length}
+                accent="emerald"
+                trend={`Approved: ${stats.events?.approved || 0}`}
+              />
+              <StatCard
+                icon={RotateCcw}
+                label="Archived in Trash"
+                value={stats.events?.deleted || deletedEvents.length}
+                accent="rose"
+                trend="Soft-deleted entries"
+              />
             </div>
           </div>
         )}
 
-        {/* COLLEGES TAB */}
+        {/* TAB 2: COLLEGES */}
         {activeTab === 'colleges' && (
-          <div className="space-y-4 animate-fadeInUp">
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-lg text-white">College Institutions ({colleges.length})</h3>
+              <div>
+                <h2 className="text-lg font-bold text-white">Accredited College Institutions</h2>
+                <p className="text-xs text-slate-400">Manage multi-tenant college records and institutional domains.</p>
+              </div>
               <button
                 onClick={() => setIsCollegeModalOpen(true)}
-                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all hover:scale-105"
+                className="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
               >
                 <Plus className="w-4 h-4" />
-                Add College
+                <span>Add College</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {colleges.map((c) => (
-                <div key={c._id} className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl shadow-xl hover:border-amber-500/30 transition-all space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-bold text-white text-sm">{c.name}</h4>
-                      <p className="text-xs text-gray-400">{c.location || 'Location Not Specified'}</p>
-                    </div>
-                    <button
-                      onClick={() => handleToggleVerification(c._id, c.isVerified)}
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all ${
-                        c.isVerified
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                          : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                      }`}
-                    >
-                      {c.isVerified ? 'Verified' : 'Unverified'}
-                    </button>
-                  </div>
-
-                  {c.emailDomain && (
-                    <p className="text-xs text-amber-300 font-mono">Domain: @{c.emailDomain}</p>
-                  )}
-
-                  <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
-                    <button
-                      onClick={() => handleDeleteCollege(c._id, c.name)}
-                      className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-xs flex items-center gap-1 transition-all border border-red-500/20"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div className="bg-surface-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface-800/80 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+                    <tr>
+                      <th className="py-3.5 px-4">Institution Name</th>
+                      <th className="py-3.5 px-4">Location</th>
+                      <th className="py-3.5 px-4">Domain</th>
+                      <th className="py-3.5 px-4">Verification</th>
+                      <th className="py-3.5 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80">
+                    {colleges.map((col) => (
+                      <tr key={col._id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="py-3.5 px-4 font-semibold text-white">{col.name}</td>
+                        <td className="py-3.5 px-4 text-slate-300">{col.location || 'N/A'}</td>
+                        <td className="py-3.5 px-4 text-slate-400 font-mono">{col.emailDomain || 'All domains'}</td>
+                        <td className="py-3.5 px-4">
+                          <button
+                            onClick={() => handleToggleVerification(col._id, col.isVerified)}
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border cursor-pointer ${
+                              col.isVerified
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                : 'bg-slate-800 text-slate-400 border-slate-700'
+                            }`}
+                          >
+                            {col.isVerified ? 'Verified' : 'Unverified'}
+                          </button>
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <button
+                            onClick={() => handleDeleteCollege(col._id, col.name)}
+                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            title="Delete College"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
 
-        {/* USERS & ROLES TAB */}
+        {/* TAB 3: USER & ROLE CONTROL */}
         {activeTab === 'users' && (
-          <div className="space-y-4 animate-fadeInUp">
-            <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-              <h3 className="font-bold text-lg text-white">System Users & Role Control</h3>
-
-              <div className="flex gap-3 w-full sm:w-auto">
-                <div className="relative flex-1 sm:w-64">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    placeholder="Search user email or name..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-gray-400 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-white">System User Accounts & Authorization</h2>
+                <p className="text-xs text-slate-400">Reassign user roles across the platform with immediate effect.</p>
+              </div>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <input
+                  type="text"
+                  placeholder="Filter users..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="px-3.5 py-2 bg-slate-950/70 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-600"
+                />
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
-                  className="bg-slate-900 border border-white/10 text-xs text-white rounded-xl px-3 py-1.5 focus:outline-none focus:border-amber-500"
+                  className="px-3 py-2 bg-slate-950/70 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-600"
                 >
                   <option value="">All Roles</option>
                   <option value="student">Student</option>
@@ -412,42 +430,41 @@ const SuperAdminDashboard = () => {
               </div>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="bg-surface-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-gray-300">
-                  <thead className="bg-white/5 text-amber-300 font-bold border-b border-white/10 uppercase tracking-wider">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface-800/80 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
                     <tr>
-                      <th className="p-3.5">User</th>
-                      <th className="p-3.5">Email</th>
-                      <th className="p-3.5">College</th>
-                      <th className="p-3.5">Current Role</th>
-                      <th className="p-3.5">Assign Role</th>
+                      <th className="py-3.5 px-4">User</th>
+                      <th className="py-3.5 px-4">Email</th>
+                      <th className="py-3.5 px-4">College</th>
+                      <th className="py-3.5 px-4">Current Role</th>
+                      <th className="py-3.5 px-4 text-right">Assign New Role</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-slate-800/80">
                     {usersList
-                      .filter(u => !roleFilter || u.role === roleFilter)
-                      .filter(u => !searchQuery || u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase()))
-                      .map((u) => (
-                        <tr key={u._id} className="hover:bg-white/5 transition-colors">
-                          <td className="p-3.5 font-semibold text-white">{u.name}</td>
-                          <td className="p-3.5 text-gray-400">{u.email}</td>
-                          <td className="p-3.5">{u.collegeId?.name || 'N/A'}</td>
-                          <td className="p-3.5">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              u.role === 'superadmin' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                              u.role === 'admin' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-                              u.role === 'organizer' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' :
-                              'bg-white/10 text-gray-300'
-                            }`}>
-                              {u.role}
+                      .filter((u) => {
+                        const q = searchQuery.toLowerCase();
+                        const matchQ = (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
+                        const matchR = !roleFilter || u.role === roleFilter;
+                        return matchQ && matchR;
+                      })
+                      .map((usr) => (
+                        <tr key={usr._id} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="py-3.5 px-4 font-semibold text-white">{usr.name}</td>
+                          <td className="py-3.5 px-4 text-slate-300 font-mono text-[11px]">{usr.email}</td>
+                          <td className="py-3.5 px-4 text-slate-400">{usr.collegeId?.name || 'Unassigned'}</td>
+                          <td className="py-3.5 px-4">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-surface-800 border border-slate-700 text-slate-300">
+                              {usr.role}
                             </span>
                           </td>
-                          <td className="p-3.5">
+                          <td className="py-3.5 px-4 text-right">
                             <select
-                              value={u.role}
-                              onChange={(e) => handleRoleChange(u._id, e.target.value)}
-                              className="bg-slate-900 border border-white/20 text-xs text-white rounded-lg px-2.5 py-1 focus:border-amber-500"
+                              value={usr.role}
+                              onChange={(e) => handleRoleChange(usr._id, e.target.value)}
+                              className="px-2.5 py-1 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
                             >
                               <option value="student">Student</option>
                               <option value="organizer">Organizer</option>
@@ -464,326 +481,272 @@ const SuperAdminDashboard = () => {
           </div>
         )}
 
-        {/* GLOBAL EVENTS TAB */}
+        {/* TAB 4: GLOBAL EVENTS MODERATION */}
         {activeTab === 'events' && (
-          <div className="space-y-4 animate-fadeInUp">
-            <h3 className="font-bold text-lg text-white">Global Event Moderation ({eventsList.length})</h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {eventsList.map((e) => (
-                <div key={e._id} className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl shadow-xl space-y-2 hover:border-amber-500/30 transition-all">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-bold text-white text-sm">{e.title}</h4>
-                      <p className="text-xs text-gray-400">{e.collegeId?.name || 'College N/A'} • {e.category}</p>
-                    </div>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      e.isApproved ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
-                    }`}>
-                      {e.isApproved ? 'Approved' : 'Pending'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-300 line-clamp-2">{e.description}</p>
-                  <div className="text-[11px] text-gray-400 flex gap-4 pt-1">
-                    <span>Date: {new Date(e.date).toLocaleDateString()}</span>
-                    <span>Venue: {e.venue}</span>
-                  </div>
-                </div>
-              ))}
+          <div className="space-y-6">
+            <h2 className="text-lg font-bold text-white">Global Event Registry Moderation</h2>
+            <div className="bg-surface-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface-800/80 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+                    <tr>
+                      <th className="py-3.5 px-4">Event</th>
+                      <th className="py-3.5 px-4">College</th>
+                      <th className="py-3.5 px-4">Category</th>
+                      <th className="py-3.5 px-4">Date</th>
+                      <th className="py-3.5 px-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80">
+                    {eventsList.map((evt) => (
+                      <tr key={evt._id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="py-3.5 px-4 font-semibold text-white">{evt.title || evt.name}</td>
+                        <td className="py-3.5 px-4 text-slate-300">{evt.collegeId?.name || 'N/A'}</td>
+                        <td className="py-3.5 px-4 text-slate-400">{evt.category}</td>
+                        <td className="py-3.5 px-4 text-slate-400 tabular-nums">{formatDate(evt.date)}</td>
+                        <td className="py-3.5 px-4">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                              evt.isApproved !== false
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                            }`}
+                          >
+                            {evt.isApproved !== false ? 'Live' : 'Pending Review'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
 
-        {/* TRASH BIN TAB (SOFT-DELETED EVENTS) */}
+        {/* TAB 5: TRASH BIN (SOFT DELETED EVENTS) */}
         {activeTab === 'trash' && (
-          <div className="space-y-4 animate-fadeInUp">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-lg text-white flex items-center gap-2">
-                <RotateCcw className="w-5 h-5 text-amber-400" />
-                Trash Bin - Soft-Deleted Events ({deletedEvents.length})
-              </h3>
-              <p className="text-xs text-gray-400">Events whose event date passed or were manually soft-deleted</p>
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-bold text-white">Soft-Deleted Events Archive</h2>
+              <p className="text-xs text-slate-400">Restore accidentally removed events or permanently purge them.</p>
             </div>
 
             {deletedEvents.length === 0 ? (
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-12 rounded-2xl text-center space-y-3">
-                <RotateCcw className="w-12 h-12 text-gray-500 mx-auto" />
-                <h4 className="font-bold text-white text-base">Trash Bin is Empty</h4>
-                <p className="text-xs text-gray-400">There are no soft-deleted events in the recovery bin.</p>
+              <div className="text-center py-16 bg-surface-900 border border-slate-800 rounded-2xl p-6">
+                <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                <p className="text-xs text-slate-400">Trash bin is currently clean. No soft-deleted records.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {deletedEvents.map((e) => (
-                  <div key={e._id} className="bg-white/5 backdrop-blur-md border border-red-500/20 p-5 rounded-2xl shadow-xl space-y-3 hover:border-amber-500/30 transition-all">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                          {e.title}
-                          <span className="px-2 py-0.5 text-[9px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 rounded-full">
-                            Deleted
-                          </span>
-                        </h4>
-                        <p className="text-xs text-gray-400">{e.collegeId?.name || 'College N/A'} • {e.category}</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-300 line-clamp-2">{e.description}</p>
-                    <div className="text-[11px] text-gray-400 flex gap-4 pt-1">
-                      <span>Event Date: {new Date(e.date).toLocaleDateString()}</span>
-                      <span>Venue: {e.venue}</span>
-                    </div>
-                    <div className="pt-3 border-t border-white/10 flex justify-end gap-2">
-                      <button
-                        onClick={() => handleRestoreEvent(e._id, e.title)}
-                        className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-semibold rounded-lg border border-emerald-500/30 flex items-center gap-1.5 transition-all"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        Restore Event
-                      </button>
-                      <button
-                        onClick={() => handlePermanentDeleteEvent(e._id, e.title)}
-                        className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold rounded-lg border border-red-500/30 flex items-center gap-1.5 transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Permanent Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
+              <div className="bg-surface-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-surface-800/80 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+                      <tr>
+                        <th className="py-3.5 px-4">Archived Event Title</th>
+                        <th className="py-3.5 px-4">College</th>
+                        <th className="py-3.5 px-4">Event Date</th>
+                        <th className="py-3.5 px-4 text-right">Recovery Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/80">
+                      {deletedEvents.map((evt) => (
+                        <tr key={evt._id} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="py-3.5 px-4 font-semibold text-rose-300">{evt.title || evt.name}</td>
+                          <td className="py-3.5 px-4 text-slate-400">{evt.collegeId?.name || 'N/A'}</td>
+                          <td className="py-3.5 px-4 text-slate-400 tabular-nums">{formatDate(evt.date)}</td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleRestoreEvent(evt._id, evt.title || evt.name)}
+                                className="px-3 py-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 rounded-lg text-xs font-semibold cursor-pointer"
+                              >
+                                Restore
+                              </button>
+                              <button
+                                onClick={() => handlePermanentDeleteEvent(evt._id, evt.title || evt.name)}
+                                className="px-3 py-1 bg-rose-600/20 text-rose-400 border border-rose-500/30 hover:bg-rose-600/30 rounded-lg text-xs font-semibold cursor-pointer"
+                              >
+                                Purge Forever
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {/* DIAGNOSTICS & PLATFORM HEALTH TAB */}
+        {/* TAB 6: DIAGNOSTICS */}
         {activeTab === 'diagnostics' && (
-          <div className="space-y-4 animate-fadeInUp">
-            <h3 className="font-bold text-lg text-white flex items-center gap-2">
-              <Activity className="w-5 h-5 text-amber-400" />
-              Platform Diagnostics & AI Engine Health
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Database Engine</span>
-                  <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-surface-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Activity className="w-5 h-5 text-emerald-400" />
+                Cluster & Tenant Diagnostics
+              </h3>
+              <div className="space-y-3 text-xs text-slate-300 divide-y divide-slate-800">
+                <div className="pt-2 flex justify-between">
+                  <span className="text-slate-400">Platform Environment:</span>
+                  <span className="font-mono text-emerald-400 font-bold">Production / Connected</span>
                 </div>
-                <div className="text-xl font-bold text-white">MongoDB Atlas</div>
-                <p className="text-xs text-emerald-400 flex items-center gap-1">
-                  <CheckCircle className="w-4 h-4" /> Connected & Operational
-                </p>
-              </div>
-
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Groq LLM Engine</span>
-                  <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="pt-2 flex justify-between">
+                  <span className="text-slate-400">Database Engine:</span>
+                  <span className="font-mono text-white">MongoDB Atlas Multi-Tenant</span>
                 </div>
-                <div className="text-xl font-bold text-white">Llama 3.3 70B Versatile</div>
-                <p className="text-xs text-emerald-400 flex items-center gap-1">
-                  <Key className="w-4 h-4" /> Dual Fallback Primary Ready
-                </p>
-              </div>
-
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Gemini LLM Engine</span>
-                  <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="pt-2 flex justify-between">
+                  <span className="text-slate-400">AI Tool Calling Provider:</span>
+                  <span className="font-mono text-white">Groq / Gemini Function Calling</span>
                 </div>
-                <div className="text-xl font-bold text-white">Gemini 2.5 Flash</div>
-                <p className="text-xs text-emerald-400 flex items-center gap-1">
-                  <Cpu className="w-4 h-4" /> Secondary AI Ready
-                </p>
+                <div className="pt-2 flex justify-between">
+                  <span className="text-slate-400">Active Tenant Colleges:</span>
+                  <span className="font-mono text-white">{colleges.length} institutions</span>
+                </div>
               </div>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-xl space-y-4">
-              <h4 className="font-bold text-white text-base">System Operational Limits</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                  <p className="text-gray-400 mb-1">JWT Session Lifetime</p>
-                  <p className="font-bold text-amber-300">3 Hours (Rolling Token)</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                  <p className="text-gray-400 mb-1">Backend Server Port</p>
-                  <p className="font-bold text-indigo-300">HTTP 5000</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                  <p className="text-gray-400 mb-1">Client Host Port</p>
-                  <p className="font-bold text-purple-300">Vite 5173</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                  <p className="text-gray-400 mb-1">Active Roles Supported</p>
-                  <p className="font-bold text-emerald-300">4 Roles (Student, Org, Admin, Super)</p>
-                </div>
-              </div>
+            <div className="bg-surface-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Shield className="w-5 h-5 text-amber-400" />
+                Multi-Tenant Access Enforcement
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                SuperAdmin holds system-level governance. Changes to roles, verification flags, and soft-delete restorations apply synchronously across the cluster.
+              </p>
             </div>
           </div>
         )}
 
-        {/* PROFILE & SETTINGS TAB */}
+        {/* TAB 7: PROFILE SETTINGS */}
         {activeTab === 'profile' && (
-          <div className="space-y-6 animate-fadeInUp max-w-3xl mx-auto">
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl shadow-2xl space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 via-orange-500 to-amber-600 flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg shadow-amber-500/20">
-                  {user?.name?.[0]?.toUpperCase() || 'S'}
-                </div>
-                <div>
-                  <h3 className="font-bold text-xl text-white">{user?.name || 'Super Admin'}</h3>
-                  <p className="text-xs text-gray-400">{user?.email}</p>
-                  <span className="inline-block mt-2 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">
-                    System Super Admin
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-white/10 space-y-4">
-                <h4 className="font-bold text-white text-sm">Account Overview</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                    <span className="text-gray-400 block mb-1">Full Name</span>
-                    <span className="font-semibold text-white">{user?.name}</span>
-                  </div>
-                  <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                    <span className="text-gray-400 block mb-1">Email Address</span>
-                    <span className="font-semibold text-white">{user?.email}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => setIsProfileModalOpen(true)}
-                    className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all hover:scale-105"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    Edit Profile & Password
-                  </button>
-                </div>
-              </div>
+          <div className="max-w-xl bg-surface-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+            <div>
+              <h3 className="text-base font-bold text-white">Super Administrator Account</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Update credentials for global platform administration.</p>
             </div>
+
+            {profileMessage && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>{profileMessage}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Admin Name
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-slate-950/70 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  value={profileForm.currentPassword}
+                  onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
+                  placeholder="Required to set new password"
+                  className="w-full px-4 py-2.5 bg-slate-950/70 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={profileForm.newPassword}
+                  onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                  placeholder="Min. 6 characters"
+                  className="w-full px-4 py-2.5 bg-slate-950/70 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-600"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm"
+              >
+                Save Administration Settings
+              </button>
+            </form>
           </div>
         )}
       </main>
 
-      {/* CREATE COLLEGE MODAL */}
+      {/* Create College Institution Modal */}
       {isCollegeModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900/90 border border-white/15 p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 animate-fadeInUp">
-            <h3 className="font-bold text-white text-base flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-amber-400" />
-              Add New College Institution
-            </h3>
-            <form onSubmit={handleCreateCollege} className="space-y-3.5 text-xs">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-900 border border-slate-700/80 rounded-2xl max-w-md w-full p-6 shadow-modal animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-white mb-1">Add College Institution</h3>
+            <p className="text-xs text-slate-400 mb-4">Register a new accredited university to the platform.</p>
+
+            <form onSubmit={handleCreateCollege} className="space-y-3.5">
               <div>
-                <label className="block text-gray-300 mb-1">College Name *</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                  Institution Name *
+                </label>
                 <input
                   type="text"
                   required
                   value={newCollege.name}
                   onChange={(e) => setNewCollege({ ...newCollege, name: e.target.value })}
-                  placeholder="e.g. Stanford University"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-amber-500"
+                  placeholder="e.g., Oxford University"
+                  className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-brand-600"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-300 mb-1">Location / City</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                  Campus Location
+                </label>
                 <input
                   type="text"
                   value={newCollege.location}
                   onChange={(e) => setNewCollege({ ...newCollege, location: e.target.value })}
-                  placeholder="e.g. California, USA"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-amber-500"
+                  placeholder="e.g., Cambridge, MA"
+                  className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-brand-600"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-300 mb-1">Email Domain (Optional)</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                  Email Domain
+                </label>
                 <input
                   type="text"
                   value={newCollege.emailDomain}
                   onChange={(e) => setNewCollege({ ...newCollege, emailDomain: e.target.value })}
-                  placeholder="e.g. stanford.edu"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-amber-500"
+                  placeholder="e.g., @oxford.ac.uk"
+                  className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-brand-600"
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-xl shadow-lg transition-all hover:scale-105"
-                >
-                  Create College
-                </button>
+              <div className="flex gap-2.5 pt-3">
                 <button
                   type="button"
                   onClick={() => setIsCollegeModalOpen(false)}
-                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-gray-300 font-medium rounded-xl border border-white/10 transition-all"
+                  className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl cursor-pointer"
                 >
                   Cancel
                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* EDIT PROFILE MODAL */}
-      {isProfileModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900/90 border border-white/15 p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 animate-fadeInUp">
-            <h3 className="font-bold text-white text-base flex items-center gap-2">
-              <User className="w-5 h-5 text-amber-400" />
-              Edit Admin Profile & Password
-            </h3>
-            <form onSubmit={handleUpdateProfile} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block text-gray-300 mb-1">Full Name</label>
-                <input
-                  type="text"
-                  required
-                  value={profileForm.name}
-                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-300 mb-1">Current Password (Required for Password Change)</label>
-                <input
-                  type="password"
-                  value={profileForm.currentPassword}
-                  onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
-                  placeholder="Enter current password"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-300 mb-1">New Password</label>
-                <input
-                  type="password"
-                  value={profileForm.newPassword}
-                  onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
-                  placeholder="Minimum 6 characters"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-xl shadow-lg transition-all hover:scale-105"
+                  className="flex-1 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl cursor-pointer"
                 >
-                  Save Profile Changes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsProfileModalOpen(false)}
-                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-gray-300 font-medium rounded-xl border border-white/10 transition-all"
-                >
-                  Cancel
+                  Create College
                 </button>
               </div>
             </form>
@@ -791,10 +754,8 @@ const SuperAdminDashboard = () => {
         </div>
       )}
 
-      {/* AI ASSISTANT WIDGET FOR SUPER ADMIN */}
-      <AIChatWidget userRole="superadmin" userName={user?.name || 'Super Admin'} />
+      {/* SphereAI Copilot Widget */}
+      <AIChatWidget userRole="superadmin" userName={user?.name} />
     </div>
   );
-};
-
-export default SuperAdminDashboard;
+}
