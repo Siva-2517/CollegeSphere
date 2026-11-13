@@ -129,7 +129,7 @@ async function processWithGroq({ user, messages, tools, apiKey }) {
       iterations++;
 
       const response = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         messages: groqMessages,
         tools: formattedTools,
         tool_choice: 'auto',
