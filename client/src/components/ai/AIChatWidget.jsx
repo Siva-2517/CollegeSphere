@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import api from '../../api/axios';
 import ConfirmationCard from './ConfirmationCard';
 import { Bot, Sparkles, Send, X, Minimize2, ChevronRight, User } from 'lucide-react';
+import { CollegeSphereLogoMark } from '../common/CollegeSphereLogo';
 
 export default function AIChatWidget({ userRole = 'student', userName = 'User' }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -171,9 +172,7 @@ export default function AIChatWidget({ userRole = 'student', userName = 'User' }
           onClick={() => setIsOpen(true)}
           className="group flex items-center gap-2.5 px-4 py-3 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-2xl shadow-modal hover:shadow-brand-500/20 transition-all cursor-pointer border border-brand-500/40"
         >
-          <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center">
-            <Bot className="w-4 h-4 text-white" />
-          </div>
+          <CollegeSphereLogoMark size={22} animated />
           <span className="text-xs tracking-wide">SphereAI Copilot</span>
         </button>
       )}
@@ -184,9 +183,7 @@ export default function AIChatWidget({ userRole = 'student', userName = 'User' }
           {/* Header */}
           <div className="px-4 py-3 bg-surface-800/90 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-brand-600 text-white shadow-sm">
-                <Bot className="w-4 h-4" />
-              </div>
+              <CollegeSphereLogoMark size={28} />
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-white text-xs sm:text-sm">SphereAI Copilot</h3>

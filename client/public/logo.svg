@@ -1,30 +1,141 @@
-<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+<svg width="200" height="200" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="orbitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+    <!-- Royal Blue Shield Gradient -->
+    <linearGradient id="crestShieldGrad" x1="20" y1="14" x2="80" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
     </linearGradient>
-    
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+
+    <!-- Bevel Shading -->
+    <linearGradient id="crestBevel" x1="50" y1="20" x2="50" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.3" />
+      <stop offset="45%" stop-color="#FFFFFF" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.45" />
+    </linearGradient>
+
+    <!-- Front Saturn Orbit Ring Gradient -->
+    <linearGradient id="crestRingFront" x1="4" y1="50" x2="96" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60A5FA" />
+      <stop offset="50%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+
+    <!-- Back Saturn Orbit Ring Gradient (Depth) -->
+    <linearGradient id="crestRingBack" x1="4" y1="50" x2="96" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.65" />
+      <stop offset="50%" stop-color="#60A5FA" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#2563EB" stop-opacity="0.65" />
+    </linearGradient>
+
+    <filter id="crestGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(37, 99, 235, 0.5)" />
     </filter>
   </defs>
 
-  <path d="M40,100 A60,60 0 1,1 160,100 A60,60 0 1,1 40,100" 
-        fill="none" stroke="url(#orbitGrad)" stroke-width="0.5" stroke-dasharray="4 2"/>
+  <!-- LAYER 1: BACK SATURN RING (Passes behind the upper shield) -->
+  <g transform="rotate(-24 50 50)">
+    <!-- Outer Saturn ring back arc -->
+    <path
+      d="M 4 50 A 46 13.5 0 0 1 96 50"
+      fill="none"
+      stroke="url(#crestRingBack)"
+      stroke-width="3.2"
+      stroke-linecap="round"
+      opacity="0.85"
+    />
+    <!-- Inner Cassini track -->
+    <path
+      d="M 12 50 A 38 10 0 0 1 88 50"
+      fill="none"
+      stroke="url(#crestRingBack)"
+      stroke-width="1.2"
+      stroke-dasharray="3 2"
+      opacity="0.5"
+    />
+  </g>
 
-  <path d="M70 130 C 40 100, 100 40, 130 70 C 160 100, 100 160, 70 130" 
-        fill="none" stroke="url(#orbitGrad)" stroke-width="8" stroke-linecap="round" filter="url(#glow)"/>
-  
-  <path d="M70 70 C 100 40, 160 100, 130 130 C 100 160, 40 100, 70 70" 
-        fill="none" stroke="#3b82f6" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+  <!-- LAYER 2: COLLEGIATE SHIELD CREST (In the middle) -->
+  <g filter="url(#crestGlow)">
+    <!-- Outer Depth Silhouette -->
+    <path
+      d="M 50 14 C 64 14, 78 18, 78 18 C 78 48, 74 68, 50 88 C 26 68, 22 48, 22 18 C 22 18, 36 14, 50 14 Z"
+      fill="#070D1E"
+      opacity="0.6"
+    />
+    <!-- Main Solid Shield -->
+    <path
+      d="M 50 15 C 63 15, 76 19, 76 19 C 76 47, 72 66, 50 86 C 28 66, 24 47, 24 19 C 24 19, 37 15, 50 15 Z"
+      fill="url(#crestShieldGrad)"
+    />
+    <!-- Inner Bevel Surface -->
+    <path
+      d="M 50 18 C 61 18, 72 21, 72 21 C 72 45, 68 62, 50 80 C 32 62, 28 45, 28 21 C 28 21, 39 18, 50 18 Z"
+      fill="url(#crestBevel)"
+    />
+    <!-- Highlight Stroke -->
+    <path
+      d="M 50 15 C 63 15, 76 19, 76 19 C 76 47, 72 66, 50 86 C 28 66, 24 47, 24 19 C 24 19, 37 15, 50 15 Z"
+      stroke="#FFFFFF"
+      stroke-width="1.2"
+      stroke-opacity="0.35"
+    />
+  </g>
 
-  <circle cx="130" cy="70" r="5" fill="#f43f5e" filter="url(#glow)"/>
-  <circle cx="70" cy="130" r="5" fill="#10b981" filter="url(#glow)"/>
-  <circle cx="100" cy="40" r="3" fill="#fbbf24"/>
-  <circle cx="100" cy="160" r="3" fill="#fbbf24"/>
+  <!-- Inner Crest Heraldry -->
+  <g>
+    <!-- Central North Star -->
+    <path
+      d="M 50 34 L 53 47 L 66 50 L 53 53 L 50 66 L 47 53 L 34 50 L 47 47 Z"
+      fill="#FFFFFF"
+      opacity="0.95"
+    />
+    <circle cx="50" cy="50" r="2.8" fill="#2563EB" />
+    <!-- Collegiate Pillar Chevron -->
+    <path
+      d="M 40 68 L 50 75 L 60 68"
+      stroke="#FFFFFF"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-opacity="0.45"
+    />
+  </g>
+
+  <!-- LAYER 3: FRONT SATURN RING (Sweeps in front of the lower shield) -->
+  <g transform="rotate(-24 50 50)">
+    <!-- Deep Drop-Shadow on Shield -->
+    <path
+      d="M 96 50 A 46 13.5 0 0 1 4 50"
+      fill="none"
+      stroke="#070D1E"
+      stroke-width="6"
+      stroke-linecap="round"
+      opacity="0.55"
+    />
+    <!-- Main Luminous Front Ring -->
+    <path
+      d="M 96 50 A 46 13.5 0 0 1 4 50"
+      fill="none"
+      stroke="url(#crestRingFront)"
+      stroke-width="3.6"
+      stroke-linecap="round"
+    />
+    <!-- Inner Track -->
+    <path
+      d="M 88 50 A 38 10 0 0 1 12 50"
+      fill="none"
+      stroke="url(#crestRingFront)"
+      stroke-width="1.2"
+      stroke-dasharray="3 2"
+      opacity="0.75"
+    />
+    <!-- Satellites -->
+    <circle cx="4" cy="50" r="3.2" fill="#FFFFFF" />
+    <circle cx="4" cy="50" r="1.6" fill="#2563EB" />
+
+    <circle cx="96" cy="50" r="2.8" fill="#93C5FD" />
+    <circle cx="96" cy="50" r="1.4" fill="#FFFFFF" />
+
+    <circle cx="50" cy="63.5" r="2.2" fill="#FFFFFF" opacity="0.9" />
+  </g>
 </svg>

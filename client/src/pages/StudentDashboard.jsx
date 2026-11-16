@@ -28,6 +28,7 @@ import StatCard from '../components/common/StatCard';
 import TeamRegistrationModal from '../components/events/TeamRegistrationModal';
 import EventCard from '../components/events/EventCard';
 import AIChatWidget from '../components/ai/AIChatWidget';
+import CollegeSphereLogo from '../components/common/CollegeSphereLogo';
 
 export default function StudentDashboard() {
   const [user, setUser] = useState(null);
@@ -285,19 +286,10 @@ export default function StudentDashboard() {
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-surface-900/95 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
-          <Link to="/student/dashboard" className="flex items-center gap-3 group cursor-pointer">
-            <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex-shrink-0 flex items-center justify-center font-bold shadow-sm group-hover:scale-105 transition-transform">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <div className="flex flex-col justify-center">
-              <span className="font-extrabold text-lg text-white tracking-tight leading-tight">
-                CollegeSphere
-              </span>
-              <span className="text-[10px] font-semibold text-brand-400 uppercase tracking-wider leading-none mt-0.5">
-                Student Portal
-              </span>
-            </div>
-          </Link>
+          <CollegeSphereLogo
+            to="/student/dashboard"
+            subtitle="Student Portal"
+          />
 
           <div className="hidden md:flex items-center gap-2">
             <button

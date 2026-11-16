@@ -14,6 +14,7 @@ import {
   Sparkles,
   Check
 } from 'lucide-react';
+import { CollegeSphereLogoMark } from './CollegeSphereLogo';
 
 /**
  * Bespoke Collegiate Profile & Academic ID Credential Section.
@@ -143,7 +144,7 @@ export default function ProfileSection({
             {/* ID Ribbon Banner */}
             <div className={`h-28 bg-gradient-to-r ${accentGradient} p-4 relative flex items-start justify-between`}>
               <div className="flex items-center gap-2 text-white/90">
-                <GraduationCap className="w-5 h-5 text-white" />
+                <CollegeSphereLogoMark size={20} variant="white" />
                 <span className="text-xs font-bold uppercase tracking-wider">
                   CollegeSphere Academic ID
                 </span>
@@ -153,7 +154,9 @@ export default function ProfileSection({
               </span>
 
               {/* Decorative background watermark */}
-              <Shield className="absolute -right-4 -bottom-6 w-28 h-28 text-white/5 pointer-events-none" />
+              <div className="absolute -right-6 -bottom-8 opacity-10 pointer-events-none">
+                <CollegeSphereLogoMark size={140} variant="white" />
+              </div>
             </div>
 
             {/* Avatar & Core Identity */}

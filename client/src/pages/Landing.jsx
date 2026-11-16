@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '../api/axios';
 import { formatCalendarDate, formatDate } from '../utils/formatDate';
+import CollegeSphereLogo, { CollegeSphereLogoMark } from '../components/common/CollegeSphereLogo';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -131,19 +132,7 @@ export default function Landing() {
       {/* Top Collegiate Navigation Bar */}
       <header className="sticky top-0 z-40 bg-surface-900/90 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 group cursor-pointer">
-            <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex-shrink-0 flex items-center justify-center font-extrabold shadow-sm group-hover:scale-105 transition-transform">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <div className="flex flex-col justify-center">
-              <span className="font-extrabold text-lg tracking-tight text-white leading-tight">
-                CollegeSphere
-              </span>
-              <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase leading-none mt-0.5">
-                Inter-College Event Network
-              </span>
-            </div>
-          </Link>
+          <CollegeSphereLogo to="/" subtitle="Inter-College Event Network" />
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
             <a href="#events" className="hover:text-white transition-colors">
@@ -428,10 +417,8 @@ export default function Landing() {
       {/* Footer */}
       <footer className="py-12 px-4 sm:px-6 border-t border-slate-800 bg-surface-900 text-slate-400 text-xs">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-brand-600 text-white flex items-center justify-center font-bold text-xs">
-              CS
-            </div>
+          <div className="flex items-center gap-2.5">
+            <CollegeSphereLogoMark size={24} />
             <span className="font-bold text-white text-sm">CollegeSphere</span>
             <span className="text-slate-500">· Official Inter-College Event Management Platform</span>
           </div>

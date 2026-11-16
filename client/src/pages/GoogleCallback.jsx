@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, AlertCircle, GraduationCap } from 'lucide-react';
+import { CheckCircle, AlertCircle } from 'lucide-react';
+import { CollegeSphereLogoMark } from '../components/common/CollegeSphereLogo';
 
 export default function GoogleCallback() {
   const [searchParams] = useSearchParams();
@@ -57,8 +58,8 @@ export default function GoogleCallback() {
       <div className="bg-surface-800/80 border border-slate-700/80 rounded-2xl p-8 max-w-sm w-full text-center shadow-ticket">
         {status === 'processing' && (
           <>
-            <div className="w-12 h-12 bg-brand-500/15 border border-brand-500/30 text-brand-400 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <GraduationCap className="w-6 h-6" />
+            <div className="flex justify-center mb-4">
+              <CollegeSphereLogoMark size={48} animated />
             </div>
             <h2 className="text-xl font-bold text-white mb-1">
               Verifying Credentials

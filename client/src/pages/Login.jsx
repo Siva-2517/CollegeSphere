@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight, GraduationCap } from 'lucide-react';
 import { useNavigate, Link } from "react-router-dom";
 import api from '../api/axios';
+import CollegeSphereLogo from '../components/common/CollegeSphereLogo';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -123,14 +124,9 @@ export default function Login() {
     <div className="min-h-screen bg-surface-900 text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans selection:bg-brand-600 selection:text-white">
       {/* Branding Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-6">
-        <Link to="/" className="inline-flex items-center gap-3 mb-3 group cursor-pointer">
-          <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex-shrink-0 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-            <GraduationCap className="w-6 h-6" />
-          </div>
-          <span className="font-extrabold text-2xl tracking-tight text-white leading-none">
-            CollegeSphere
-          </span>
-        </Link>
+        <div className="flex justify-center mb-4">
+          <CollegeSphereLogo to="/" size={44} textScale="lg" subtitle="" />
+        </div>
         <h2 className="text-2xl font-bold text-white tracking-tight">
           Sign In to Your Account
         </h2>
