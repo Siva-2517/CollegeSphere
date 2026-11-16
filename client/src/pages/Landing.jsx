@@ -1,602 +1,442 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, Users, Globe, Zap, ArrowRight, CheckCircle, Award, Clock, BarChart3, Sparkles } from 'lucide-react';
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  Calendar,
+  Users,
+  Building2,
+  Clock,
+  ArrowRight,
+  Search,
+  CheckCircle,
+  Tag,
+  ShieldCheck,
+  Zap,
+  GraduationCap
+} from 'lucide-react';
 import api from '../api/axios';
-
-// Animated Counter Component
-const AnimatedCounter = ({ end, duration = 2000, suffix = '' }) => {
-  const [count, setCount] = useState(0);
-  const countRef = useRef(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !isVisible) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.5 }
-    );
-
-    if (countRef.current) {
-      observer.observe(countRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!isVisible) return;
-
-    const steps = 60;
-    const interval = duration / steps;
-    let step = 0;
-
-    const timer = setInterval(() => {
-      step++;
-      setCount(Math.floor((end * step) / steps));
-      if (step >= steps) clearInterval(timer);
-    }, interval);
-
-    return () => clearInterval(timer);
-  }, [isVisible, end, duration]);
-
-  return <span ref={countRef}>{count.toLocaleString()}{suffix}</span>;
-};
+import { formatCalendarDate, formatDate } from '../utils/formatDate';
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [scrollY, setScrollY] = useState(0);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [stats, setStats] = useState({ events: 0, students: 0, colleges: 0 });
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [registering, setRegistering] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // Scroll and Mouse tracking
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    const handleMouseMove = (e) => setMousePosition({ x: e.clientX, y: e.clientY });
-
-    window.addEventListener('scroll', handleScroll);
-    window.addEventListener('mousemove', handleMouseMove);
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, []);
-
-  // Fetch dynamic data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch stats from public endpoint
         const { data: statsData } = await api.get('/api/admin/stats/public');
         setStats({
-          events: statsData.totalEvents || 500,
-          students: statsData.totalStudents || 10000,
-          colleges: statsData.totalColleges || 50
+          events: statsData.totalEvents || 120,
+          students: statsData.totalStudents || 4500,
+          colleges: statsData.totalColleges || 35
         });
       } catch (error) {
-        console.error('Error fetching stats:', error);
-        setStats({ events: 500, students: 10000, colleges: 50 });
+        setStats({ events: 120, students: 4500, colleges: 35 });
       }
 
       try {
-        // Fetch upcoming events
         const { data: eventsData } = await api.get('/api/event/AllEvents');
         setEvents(eventsData.events || eventsData || []);
       } catch (error) {
-        console.error('Error fetching events:', error);
-        // Fallback demo events
         setEvents([
           {
             _id: '1',
-            name: 'TechFest 2026',
-            collegeName: 'MIT College',
-            date: '2026-02-15',
-            deadline: '2026-02-10',
-            isRegistered: false,
-            active: true
+            title: 'National HackSummit 2026',
+            collegeName: 'MIT College of Engineering',
+            date: '2026-03-15T09:00:00Z',
+            deadline: '2026-03-10T23:59:59Z',
+            category: 'Technical',
+            eventType: 'team',
+            minTeamSize: 2,
+            maxTeamSize: 4,
+            venue: 'Main Tech Arena'
           },
           {
             _id: '2',
-            name: 'HackInnovate',
-            collegeName: 'Stanford University',
-            date: '2026-03-05',
-            deadline: '2026-02-28',
-            isRegistered: false,
-            active: true
+            title: 'Inter-University Cultural Fest',
+            collegeName: 'Stanford University Campus',
+            date: '2026-03-25T10:00:00Z',
+            deadline: '2026-03-20T23:59:59Z',
+            category: 'Cultural',
+            eventType: 'solo',
+            venue: 'Grand Amphitheater'
           },
           {
             _id: '3',
-            name: 'AI Workshop Series',
-            collegeName: 'Berkeley',
-            date: '2026-01-20',
-            deadline: '2026-01-18',
-            isRegistered: true,
-            active: false
+            title: 'AI & Robotics Colloquium',
+            collegeName: 'UC Berkeley Institute',
+            date: '2026-04-05T09:30:00Z',
+            deadline: '2026-04-01T23:59:59Z',
+            category: 'Workshop',
+            eventType: 'solo',
+            venue: 'Robotics Lab 3'
           },
           {
             _id: '4',
-            name: 'Startup Summit',
-            collegeName: 'Harvard',
-            date: '2026-04-12',
-            deadline: '2026-04-05',
-            isRegistered: false,
-            active: true
+            title: 'Annual Varsity Athletic Meet',
+            collegeName: 'Harvard Athletic Complex',
+            date: '2026-04-18T08:00:00Z',
+            deadline: '2026-04-12T23:59:59Z',
+            category: 'Sports',
+            eventType: 'team',
+            minTeamSize: 4,
+            maxTeamSize: 8,
+            venue: 'Olympic Stadium Track'
           }
         ]);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     fetchData();
   }, []);
 
-  const handleRegister = async (eventId) => {
+  const handleRegisterClick = async (_event) => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      alert('Please login to register for events');
+    const userStr = localStorage.getItem('user');
+
+    if (!token || !userStr) {
+      navigate('/login');
       return;
     }
 
-    setRegistering(prev => ({ ...prev, [eventId]: true }));
-
     try {
-      await api.post(`/api/registration/register/${eventId}`);
-      setEvents(prev => prev.map(event =>
-        event._id === eventId ? { ...event, isRegistered: true } : event
-      ));
-    } catch (error) {
-      console.error('Registration error:', error);
-      if (error.response?.status === 401) {
-        alert('Please login to register for events');
+      const user = JSON.parse(userStr);
+      if (user.role === 'student') {
+        navigate('/student/dashboard');
       } else {
-        alert('Registration failed. Please try again.');
+        alert('Event registration is primarily for student accounts.');
       }
-    } finally {
-      setRegistering(prev => ({ ...prev, [eventId]: false }));
+    } catch {
+      navigate('/login');
     }
   };
 
-  const handleCancelRegistration = async (eventId) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      alert('Please login to cancel registration');
-      return;
-    }
+  const categories = ['all', 'Technical', 'Cultural', 'Sports', 'Workshop', 'Competition'];
 
-    setRegistering(prev => ({ ...prev, [eventId]: true }));
-
-    try {
-      // Note: This endpoint requires registrationId, not eventId
-      // For now, using a placeholder - in real implementation, you'd need to fetch the registration ID first
-      await api.delete(`/api/registration/cancel/${eventId}`);
-      setEvents(prev => prev.map(event =>
-        event._id === eventId ? { ...event, isRegistered: false } : event
-      ));
-    } catch (error) {
-      console.error('Cancellation error:', error);
-      alert('Cancellation failed. Please try again.');
-    } finally {
-      setRegistering(prev => ({ ...prev, [eventId]: false }));
-    }
-  };
-
-  const features = [
-    {
-      icon: <Users className="w-8 h-8" />,
-      title: "Multi-College Events",
-      description: "Access events from multiple colleges in one unified platform"
-    },
-    {
-      icon: <Zap className="w-8 h-8" />,
-      title: "Instant Registration",
-      description: "Register for events with a single click before the deadline"
-    },
-    {
-      icon: <Clock className="w-8 h-8" />,
-      title: "Deadline Based Access",
-      description: "Smart system that locks registrations after deadlines"
-    },
-    {
-      icon: <BarChart3 className="w-8 h-8" />,
-      title: "Student Dashboard",
-      description: "Track all your events, registrations, and participation history"
-    }
-  ];
-
-  const steps = [
-    { title: "Create Account", description: "Sign up with your college email" },
-    { title: "Explore Events", description: "Browse events from multiple colleges" },
-    { title: "Register Before Deadline", description: "Secure your spot in time" },
-    { title: "Participate & Track", description: "Attend events and monitor progress" }
-  ];
+  const filteredEvents = events.filter((ev) => {
+    const title = (ev.title || ev.name || '').toLowerCase();
+    const college = (ev.collegeName || ev.collegeId?.name || '').toLowerCase();
+    const matchesSearch = title.includes(searchQuery.toLowerCase()) || college.includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || ev.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-white overflow-hidden relative">
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(1deg); }
-        }
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in-up {
-          animation: fade-in-up 1s ease-out;
-        }
-      `}</style>
+    <div className="min-h-screen bg-surface-900 text-slate-100 font-sans selection:bg-brand-600 selection:text-white">
+      {/* Top Collegiate Navigation Bar */}
+      <header className="sticky top-0 z-40 bg-surface-900/90 backdrop-blur-md border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3 group cursor-pointer">
+            <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex-shrink-0 flex items-center justify-center font-extrabold shadow-sm group-hover:scale-105 transition-transform">
+              <GraduationCap className="w-6 h-6" />
+            </div>
+            <div className="flex flex-col justify-center">
+              <span className="font-extrabold text-lg tracking-tight text-white leading-tight">
+                CollegeSphere
+              </span>
+              <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase leading-none mt-0.5">
+                Inter-College Event Network
+              </span>
+            </div>
+          </Link>
 
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div
-          className="absolute w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"
-          style={{
-            top: '10%',
-            left: '10%',
-            transform: `translate(${scrollY * 0.1}px, ${scrollY * 0.05}px)`
-          }}
-        />
-        <div
-          className="absolute w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"
-          style={{
-            top: '60%',
-            right: '10%',
-            animationDelay: '1s',
-            transform: `translate(${-scrollY * 0.08}px, ${scrollY * 0.06}px)`
-          }}
-        />
-        <div
-          className="absolute w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"
-          style={{
-            top: '40%',
-            left: '50%',
-            animationDelay: '2s',
-            transform: `translate(${scrollY * 0.05}px, ${-scrollY * 0.04}px)`
-          }}
-        />
-      </div>
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+            <a href="#events" className="hover:text-white transition-colors">
+              Browse Events
+            </a>
+            <a href="#about" className="hover:text-white transition-colors">
+              Platform
+            </a>
+            <a href="#how-it-works" className="hover:text-white transition-colors">
+              How It Works
+            </a>
+          </nav>
 
-      {/* Mouse Follow Glow */}
-      <div
-        className="fixed w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none transition-all duration-300 ease-out"
-        style={{
-          left: mousePosition.x - 128,
-          top: mousePosition.y - 128,
-        }}
-      />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/login')}
+              className="px-4 py-2 text-sm font-semibold text-slate-200 hover:text-white hover:bg-slate-800/80 rounded-xl transition-all cursor-pointer"
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => navigate('/register')}
+              className="px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-sm transition-all cursor-pointer"
+            >
+              Get Started
+            </button>
+          </div>
+        </div>
+      </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-6 pt-20">
-        <div className="max-w-6xl mx-auto text-center relative z-10">
-          <div className="animate-fade-in-up">
-            <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-full px-4 py-2 mb-8 backdrop-blur-sm">
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              <span className="text-sm text-purple-300">Welcome to the Future of College Events</span>
-            </div>
-
-            <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent leading-tight pb-2">
-              CollegeSphere
-            </h1>
-
-            <p className="text-4xl md:text-5xl font-bold mb-6 text-white/90">
-              Where College Events Come Alive
-            </p>
-
-            <p className="text-xl md:text-2xl text-gray-300 mb-12 max-w-3xl mx-auto">
-              Discover. Register. Participate. Across Multiple Colleges.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <button
-                onClick={() => {
-                  document.getElementById('upcoming-events')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full font-semibold text-lg overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/50 cursor-pointer"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  Explore Events
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-pink-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
-
-              <button
-                onClick={() => navigate("/register")}
-                className="px-8 py-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full font-semibold text-lg transition-all duration-300 hover:bg-white/10 hover:scale-105 hover:shadow-xl cursor-pointer"
-              >
-                Login / Register
-              </button>
-            </div>
-
+      <section className="relative pt-16 pb-20 px-4 sm:px-6 border-b border-slate-800 bg-gradient-to-b from-surface-900 via-brand-navy to-surface-900 overflow-hidden">
+        <div className="max-w-5xl mx-auto text-center relative z-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-300 text-xs font-semibold mb-6">
+            <ShieldCheck className="w-4 h-4 text-brand-400" />
+            Verified Inter-College Collegiate Network
           </div>
 
-          {/* Live Stats Preview */}
-          <div className="mt-20 relative">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              {[
-                { icon: <Calendar className="w-8 h-8" />, metric: "24", label: "Events This Week", color: "from-blue-500 to-cyan-500" },
-                { icon: <Award className="w-8 h-8" />, metric: "4.8★", label: "Average Rating", color: "from-yellow-500 to-orange-500" },
-                { icon: <CheckCircle className="w-8 h-8" />, metric: "98%", label: "Success Rate", color: "from-green-500 to-emerald-500" }
-              ].map((stat, i) => (
-                <div
-                  key={i}
-                  className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 transform hover:scale-105 transition-all duration-300 hover:bg-white/10 hover:border-white/20"
-                  style={{
-                    animation: `float ${3 + i}s ease-in-out infinite`,
-                    animationDelay: `${i * 0.3}s`
-                  }}
-                >
-                  <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-lg mb-4 flex items-center justify-center`}>
-                    {stat.icon}
-                  </div>
-                  <div className="text-3xl font-bold mb-1 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                    {stat.metric}
-                  </div>
-                  <p className="text-sm text-gray-400">{stat.label}</p>
-                </div>
-              ))}
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold text-white tracking-tight leading-[1.1] mb-6">
+            Where University Events <br className="hidden sm:inline" />
+            <span className="text-brand-500">Compete & Collaborate</span>
+          </h1>
+
+          <p className="text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
+            Discover hackathons, cultural festivals, sports tournaments, and workshops across accredited universities. Verified registration with deadline-backed rosters.
+          </p>
+
+          {/* Quick Search Toolbar */}
+          <div className="max-w-2xl mx-auto bg-surface-900/95 border border-slate-700 p-2 sm:p-2.5 rounded-2xl shadow-ticket flex flex-col sm:flex-row gap-2 mb-12">
+            <div className="relative flex-1">
+              <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search events, colleges, or topics..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-transparent text-white placeholder-slate-400 text-sm focus:outline-none"
+              />
+            </div>
+            <a
+              href="#events"
+              className="px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              Explore Events
+              <ArrowRight className="w-4 h-4" />
+            </a>
+          </div>
+
+          {/* Live Verified Numbers */}
+          <div className="grid grid-cols-3 max-w-xl mx-auto divide-x divide-slate-800 border-t border-slate-800/80 pt-8 text-center">
+            <div className="px-3">
+              <div className="text-2xl sm:text-3xl font-extrabold text-white tabular-nums">
+                {stats.colleges}+
+              </div>
+              <div className="text-xs text-slate-400 mt-1 font-medium uppercase tracking-wider">
+                Colleges
+              </div>
+            </div>
+            <div className="px-3">
+              <div className="text-2xl sm:text-3xl font-extrabold text-white tabular-nums">
+                {stats.events}+
+              </div>
+              <div className="text-xs text-slate-400 mt-1 font-medium uppercase tracking-wider">
+                Live Events
+              </div>
+            </div>
+            <div className="px-3">
+              <div className="text-2xl sm:text-3xl font-extrabold text-white tabular-nums">
+                {stats.students}+
+              </div>
+              <div className="text-xs text-slate-400 mt-1 font-medium uppercase tracking-wider">
+                Students
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section id="stats-section" className="relative py-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { label: "Events Hosted", value: stats.events, suffix: "+" },
-              { label: "Partner Colleges", value: stats.colleges, suffix: "+" },
-              { label: "Active Students", value: stats.students, suffix: "+" }
-            ].map((stat, i) => (
-              <div key={i} className="text-center group">
-                <div className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2 group-hover:scale-110 transition-transform duration-300">
-                  <AnimatedCounter end={stat.value} suffix={stat.suffix} />
-                </div>
-                <div className="text-gray-400 text-lg">{stat.label}</div>
-              </div>
+      {/* Events Schedule Feed */}
+      <section id="events" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-brand-400 block mb-2">
+              Official Schedule
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Upcoming Inter-College Events
+            </h2>
+          </div>
+
+          {/* Category Filter Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 custom-scrollbar">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  selectedCategory === cat
+                    ? 'bg-brand-600 text-white shadow-sm'
+                    : 'bg-surface-800 text-slate-300 hover:bg-slate-700/60 hover:text-white'
+                }`}
+              >
+                {cat === 'all' ? 'All Categories' : cat}
+              </button>
             ))}
           </div>
         </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="relative py-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Powerful Features
-            </h2>
-            <p className="text-xl text-gray-400">Everything you need for seamless event management</p>
+        {loading ? (
+          <div className="py-20 text-center text-slate-400">
+            <div className="w-10 h-10 border-3 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm">Loading upcoming collegiate schedule...</p>
           </div>
-
+        ) : filteredEvents.length === 0 ? (
+          <div className="text-center py-20 bg-surface-900 border border-slate-800 rounded-2xl p-8">
+            <Calendar className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-white mb-1">No matching events found</h3>
+            <p className="text-slate-400 text-sm max-w-md mx-auto">
+              Try adjusting your search terms or category filter to discover other scheduled inter-college events.
+            </p>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, i) => (
+            {filteredEvents.map((event) => {
+              const eventDateObj = formatCalendarDate(event.date);
+              const isPastDeadline = new Date(event.deadline) < new Date();
+              const eventTitle = event.title || event.name || 'Untitled Event';
+              const collegeTitle = event.collegeName || event.collegeId?.name || 'Accredited College';
+
+              return (
+                <div
+                  key={event._id}
+                  className="bg-surface-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-700 hover:shadow-ticket transition-all flex flex-col justify-between"
+                >
+                  <div className="p-5">
+                    {/* Event Pass Header with Calendar Date Stamp */}
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="flex flex-col items-center justify-center bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-center min-w-[56px]">
+                        <span className="text-[10px] font-bold text-brand-400 tracking-wider">
+                          {eventDateObj.month}
+                        </span>
+                        <span className="text-xl font-extrabold text-white leading-none mt-0.5 tabular-nums">
+                          {eventDateObj.day}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        <span className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-surface-800 text-slate-300 border border-slate-700/60">
+                          {event.category || 'General'}
+                        </span>
+                        <span
+                          className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border ${
+                            isPastDeadline
+                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          }`}
+                        >
+                          {isPastDeadline ? 'Closed' : 'Open'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <h3 className="text-base font-bold text-white mb-2 line-clamp-2 leading-snug">
+                      {eventTitle}
+                    </h3>
+
+                    <div className="space-y-1.5 text-xs text-slate-400 mb-4">
+                      <div className="flex items-center gap-2 truncate">
+                        <Building2 className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                        <span className="truncate">{collegeTitle}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                        <span className="capitalize">
+                          {event.eventType === 'team'
+                            ? `Team (${event.minTeamSize || 2}–${event.maxTeamSize || 5} members)`
+                            : 'Individual (Solo)'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <Clock className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                        <span>Deadline: {formatDate(event.deadline)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-5 pt-0 border-t border-slate-800/60 mt-auto">
+                    <button
+                      onClick={() => handleRegisterClick(event)}
+                      disabled={isPastDeadline}
+                      className={`w-full py-2.5 rounded-xl font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                        isPastDeadline
+                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                          : 'bg-brand-600 hover:bg-brand-700 text-white shadow-sm'
+                      }`}
+                    >
+                      {isPastDeadline ? 'Registration Closed' : 'Register for Event'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* How It Works Section */}
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 bg-surface-950/60 border-t border-b border-slate-800">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-xs font-bold uppercase tracking-wider text-brand-400 block mb-2">
+              Simple Protocol
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">
+              Designed for Campus Life
+            </h2>
+            <p className="text-slate-400 text-sm">
+              CollegeSphere unifies fragmented social media posters and Google Forms into one verified inter-university registry.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[
+              {
+                step: '01',
+                title: 'College Sign-In',
+                desc: 'Sign up with your verified college identity or Google authentication in seconds.'
+              },
+              {
+                step: '02',
+                title: 'Browse Cross-Campus',
+                desc: 'Filter hackathons, technical symposia, cultural meets, and varsity tournaments.'
+              },
+              {
+                step: '03',
+                title: 'Build or Join Teams',
+                desc: 'Register solo or assemble your squad with automated roster bounds and verification.'
+              },
+              {
+                step: '04',
+                title: 'Participate & Track',
+                desc: 'Track live event status, submission deadlines, and participation history seamlessly.'
+              }
+            ].map((s, idx) => (
               <div
-                key={i}
-                className="group relative bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20"
-                style={{
-                  animation: `fade-in-up 0.6s ease-out ${i * 0.1}s both`
-                }}
+                key={idx}
+                className="bg-surface-900 border border-slate-800 rounded-2xl p-6 relative flex flex-col justify-between"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative z-10">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    {feature.icon}
+                <div>
+                  <div className="text-2xl font-black text-brand-500 mb-3 font-display">
+                    {s.step}
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-gray-400">{feature.description}</p>
+                  <h3 className="text-base font-bold text-white mb-2">{s.title}</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">{s.desc}</p>
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="relative py-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              How It Works
-            </h2>
-            <p className="text-xl text-gray-400">Get started in four simple steps</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {steps.map((step, i) => (
-              <div key={i} className="relative">
-                <div className="flex flex-col items-center text-center group">
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-3xl font-bold mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-purple-500/50">
-                    {i + 1}
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
-                  <p className="text-gray-400">{step.description}</p>
-                </div>
-                {i < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-10 left-3/4 w-full h-0.5 bg-gradient-to-r from-purple-500 to-pink-500" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Upcoming Events */}
-      <section id="upcoming-events" className="relative py-20 px-6">
-
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Upcoming Events
-            </h2>
-            <p className="text-xl text-gray-400">Don't miss out on these exciting opportunities</p>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-20">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-              <p className="mt-4 text-gray-400">Loading events...</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {events.map((event, i) => {
-                const isPastDeadline = new Date(event.deadline) < new Date();
-                const isActive = event.active !== undefined ? event.active : !isPastDeadline;
-                const formattedDate = new Date(event.date).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                });
-                const formattedDeadline = new Date(event.deadline).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                });
-
-                return (
-                  <div
-                    key={event._id || i}
-                    className="group bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 hover:-translate-y-2"
-                  >
-                    <div className="h-48 bg-gradient-to-br from-purple-600 to-pink-600 relative overflow-hidden">
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                      <div className="absolute top-4 right-4">
-                        <div className={`px-3 py-1 rounded-full text-xs font-semibold ${isActive ? 'bg-green-500' : 'bg-red-500'}`}>
-                          {isActive ? 'Open' : 'Closed'}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold mb-2">{event.name}</h3>
-                      <div className="flex items-center gap-2 text-gray-400 mb-1">
-                        <Users className="w-4 h-4" />
-                        <span className="text-sm">{event.collegeName}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-400 mb-1">
-                        <Calendar className="w-4 h-4" />
-                        <span className="text-sm">{formattedDate}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-400 mb-4">
-                        <Clock className="w-4 h-4" />
-                        <span className="text-sm">Deadline: {formattedDeadline}</span>
-                      </div>
-
-                      {event.isRegistered ? (
-                        <button
-                          onClick={() => handleCancelRegistration(event._id)}
-                          disabled={registering[event._id]}
-                          className="w-full py-3 rounded-lg font-semibold transition-all duration-300 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 disabled:opacity-50"
-                        >
-                          {registering[event._id] ? 'Processing...' : 'Cancel Registration'}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleRegister(event._id)}
-                          disabled={!isActive || registering[event._id]}
-                          className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 ${isActive
-                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-lg hover:shadow-purple-500/50 hover:scale-105'
-                            : 'bg-gray-600 cursor-not-allowed opacity-50'
-                            }`}
-                        >
-                          {registering[event._id] ? 'Registering...' : isActive ? 'Register Now' : 'Registration Closed'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Why CollegeSphere */}
-      <section className="relative py-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Why CollegeSphere?
-              </h2>
-              <div className="space-y-4">
-                {[
-                  "Secure backend with robust authentication and authorization",
-                  "Deadline-locked registration system prevents late entries",
-                  "Scalable MERN architecture for growing user base",
-                  "Real-time event updates and notifications",
-                  "Cross-college collaboration and networking"
-                ].map((point, i) => (
-                  <div key={i} className="flex items-start gap-3 group">
-                    <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0 mt-1 group-hover:scale-110 transition-transform" />
-                    <p className="text-lg text-gray-300">{point}</p>
-                  </div>
-                ))}
-              </div>
-              <button className="mt-8 px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full font-semibold text-lg hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300">
-                Learn More
-              </button>
-            </div>
-            <div className="relative h-96">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-3xl backdrop-blur-sm border border-white/10" />
-              <div className="absolute top-10 left-10 w-32 h-32 bg-purple-500/30 rounded-full blur-2xl animate-pulse" />
-              <div className="absolute bottom-10 right-10 w-40 h-40 bg-pink-500/30 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-gradient-to-br from-purple-600 to-pink-600 rounded-3xl shadow-2xl shadow-purple-500/50 flex items-center justify-center">
-                <Award className="w-24 h-24" />
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative py-12 px-6 border-t border-white/10 mt-20">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500 to-transparent" />
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div className="md:col-span-2">
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">
-                CollegeSphere
-              </h3>
-              <p className="text-gray-400 mb-4">
-                Connecting students across colleges through innovative event management.
-              </p>
+      <footer className="py-12 px-4 sm:px-6 border-t border-slate-800 bg-surface-900 text-slate-400 text-xs">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded bg-brand-600 text-white flex items-center justify-center font-bold text-xs">
+              CS
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li className="hover:text-purple-400 cursor-pointer transition-colors">Events</li>
-                <li className="hover:text-purple-400 cursor-pointer transition-colors">About Us</li>
-                <li className="hover:text-purple-400 cursor-pointer transition-colors">Contact</li>
-                <li className="hover:text-purple-400 cursor-pointer transition-colors">FAQ</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Connect</h4>
-              <div className="flex gap-4">
-                {['Twitter', 'LinkedIn', 'Instagram'].map((social, i) => (
-                  <div key={i} className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center hover:bg-white/10 cursor-pointer transition-all hover:scale-110">
-                    <span className="text-xs">{social[0]}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <span className="font-bold text-white text-sm">CollegeSphere</span>
+            <span className="text-slate-500">· Official Inter-College Event Management Platform</span>
           </div>
-          <div className="text-center text-gray-500 pt-8 border-t border-white/5">
-            <p>&copy; {new Date().getFullYear()} CollegeSphere. All rights reserved.</p>
+          <div>
+            &copy; {new Date().getFullYear()} CollegeSphere. All rights reserved.
           </div>
         </div>
       </footer>

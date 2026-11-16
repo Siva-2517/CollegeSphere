@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, User, Mail, Lock, Sparkles, CheckCircle, XCircle, AlertCircle, ArrowRight, Calendar, Send } from 'lucide-react';
-import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff, User, Mail, Lock, CheckCircle, XCircle, AlertCircle, ArrowRight, Calendar, GraduationCap, Building2 } from 'lucide-react';
+import { useNavigate, Link } from "react-router-dom";
 import api from '../api/axios';
 
 export default function Register() {
@@ -29,9 +29,7 @@ export default function Register() {
   const [resendTimer, setResendTimer] = useState(0);
 
   useEffect(() => {
-    if (formData.role === 'admin' || formData.role === 'organizer' || formData.role === 'student') {
-      fetchColleges();
-    }
+    fetchColleges();
   }, [formData.role]);
 
   const fetchColleges = async () => {
@@ -39,17 +37,15 @@ export default function Register() {
       const { data } = await api.get('/api/college/all');
       setColleges(data.colleges || data || []);
     } catch (error) {
-      console.error('Error fetching colleges:', error);
       setColleges([
-        { _id: '1', name: 'MIT College' },
+        { _id: '1', name: 'MIT College of Engineering' },
         { _id: '2', name: 'Stanford University' },
         { _id: '3', name: 'Harvard University' },
-        { _id: '4', name: 'Berkeley College' }
+        { _id: '4', name: 'UC Berkeley' }
       ]);
     }
   };
 
-  // Password strength calculator
   useEffect(() => {
     const password = formData.password;
     let strength = 0;
@@ -60,7 +56,6 @@ export default function Register() {
     setPasswordStrength(strength);
   }, [formData.password]);
 
-  // Resend timer countdown
   useEffect(() => {
     if (resendTimer > 0) {
       const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
@@ -83,13 +78,12 @@ export default function Register() {
       setResendTimer(60);
       return true;
     } catch (error) {
-      console.error('Send OTP error:', error);
       if (error.response?.data?.msg) {
         setOtpError(error.response.data.msg);
       } else if (error.response?.data?.message) {
         setOtpError(error.response.data.message);
       } else {
-        setOtpError('Failed to send OTP. Please try again.');
+        setOtpError('Failed to dispatch verification code. Please check email.');
       }
       return false;
     }
@@ -106,9 +100,9 @@ export default function Register() {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = 'University or personal email is required';
     } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = 'Please enter a valid email address';
     }
 
     if (!formData.password) {
@@ -118,17 +112,17 @@ export default function Register() {
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = 'Confirmation password required';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
     if ((formData.role === 'admin' || formData.role === 'organizer' || formData.role === 'student') && !formData.collegeId) {
-      newErrors.collegeId = 'Please select a college';
+      newErrors.collegeId = 'Please select your affiliated college';
     }
 
     if (!agreedToTerms) {
-      newErrors.terms = 'You must agree to the terms and conditions';
+      newErrors.terms = 'Please accept the terms to continue';
     }
 
     setErrors(newErrors);
@@ -139,11 +133,8 @@ export default function Register() {
     e.preventDefault();
     setApiError('');
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
-    // Send OTP and show modal
     setLoading(true);
     const otpSent = await sendOTP();
     setLoading(false);
@@ -155,7 +146,7 @@ export default function Register() {
 
   const handleOtpSubmit = async () => {
     if (!otpValue || otpValue.length !== 6) {
-      setOtpError('Please enter a valid 6-digit OTP');
+      setOtpError('Please enter the full 6-digit verification code');
       return;
     }
 
@@ -164,12 +155,12 @@ export default function Register() {
 
     try {
       const payload = {
-        name: formData.fullName,
-        email: formData.email,
+        name: formData.fullName.trim(),
+        email: formData.email.trim(),
         password: formData.password,
         role: formData.role,
         otp: otpValue,
-        ...(formData.role === 'admin' || formData.role === 'organizer' || formData.role === 'student' ? { collegeId: formData.collegeId } : {})
+        ...(formData.collegeId ? { collegeId: formData.collegeId } : {})
       };
 
       const { data } = await api.post('/api/auth/register', payload);
@@ -177,474 +168,344 @@ export default function Register() {
       if (data.token) {
         localStorage.setItem('token', data.token);
       }
-
       if (data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
       }
 
-      setTimeout(() => {
-        if (formData.role === 'admin') navigate('/admin/dashboard');
-        else if (formData.role === 'organizer') navigate('/organizer/dashboard');
-        else navigate('/student/dashboard');
-      }, 1000);
+      if (formData.role === 'admin') navigate('/admin/dashboard');
+      else if (formData.role === 'organizer') navigate('/organizer/dashboard');
+      else navigate('/student/dashboard');
     } catch (error) {
-      console.error('Registration error:', error);
-
       if (error.response?.data?.msg) {
         setOtpError(error.response.data.msg);
       } else if (error.response?.data?.message) {
         setOtpError(error.response.data.message);
       } else if (error.response?.data?.error) {
         setOtpError(error.response.data.error);
-      } else if (error.response) {
-        setOtpError('Registration failed. Please try again.');
       } else {
-        setOtpError('Network error. Please check your connection and try again.');
+        setOtpError('Registration verification failed. Please check code.');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const getPasswordStrengthColor = () => {
-    if (passwordStrength === 0) return 'bg-gray-600';
-    if (passwordStrength === 1) return 'bg-red-500';
-    if (passwordStrength === 2) return 'bg-orange-500';
-    if (passwordStrength === 3) return 'bg-yellow-500';
-    return 'bg-green-500';
-  };
-
-  const getPasswordStrengthText = () => {
-    if (passwordStrength === 0) return '';
-    if (passwordStrength === 1) return 'Weak';
-    if (passwordStrength === 2) return 'Fair';
-    if (passwordStrength === 3) return 'Good';
-    return 'Strong';
+  const getStrengthBar = (level) => {
+    if (level <= passwordStrength) {
+      if (passwordStrength === 1) return 'bg-rose-500';
+      if (passwordStrength === 2) return 'bg-amber-500';
+      if (passwordStrength === 3) return 'bg-brand-500';
+      return 'bg-emerald-500';
+    }
+    return 'bg-slate-800';
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-white flex items-center justify-center p-6 relative overflow-hidden">
-      <style>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-10px); }
-          75% { transform: translateX(10px); }
-        }
-        .animate-fadeInUp {
-          animation: fadeInUp 0.6s ease-out;
-        }
-        .animate-shake {
-          animation: shake 0.3s ease-in-out;
-        }
-      `}</style>
-
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse top-10 left-10" />
-        <div className="absolute w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse bottom-10 right-10" style={{ animationDelay: '1s' }} />
-        <div className="absolute w-64 h-64 bg-pink-500/10 rounded-full blur-3xl animate-pulse top-1/2 left-1/2" style={{ animationDelay: '2s' }} />
+    <div className="min-h-screen bg-surface-900 text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans selection:bg-brand-600 selection:text-white">
+      <div className="sm:mx-auto sm:w-full sm:max-w-lg text-center mb-6">
+        <Link to="/" className="inline-flex items-center gap-3 mb-3 group cursor-pointer">
+          <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex-shrink-0 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+            <GraduationCap className="w-6 h-6" />
+          </div>
+          <span className="font-extrabold text-2xl tracking-tight text-white leading-none">
+            CollegeSphere
+          </span>
+        </Link>
+        <h2 className="text-2xl font-bold text-white tracking-tight">
+          Create Your Collegiate Account
+        </h2>
+        <p className="text-xs text-slate-400 mt-1">
+          Join your campus community to discover, organize, and participate in events
+        </p>
       </div>
 
-      <div className="w-full max-w-md relative z-10 animate-fadeInUp">
-        {/* Hero Section */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-full px-4 py-2 mb-4 backdrop-blur-sm">
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span className="text-sm text-purple-300">Join CollegeSphere Today</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
-            Create Your Account
-          </h1>
-          <p className="text-gray-400 text-lg">
-            Discover and manage college events across campuses
-          </p>
-        </div>
-
-        {/* Registration Form */}
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 shadow-2xl">
-          {/* API Error Message */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-lg px-4 sm:px-0">
+        <div className="bg-surface-800/80 border border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-ticket">
           {apiError && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3 animate-shake">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-red-300 text-sm">{apiError}</p>
+            <div className="mb-6 p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start gap-2.5 text-rose-300 text-sm">
+              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+              <span>{apiError}</span>
             </div>
           )}
 
-          <div className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Account Role Selector */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                I am registering as:
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, role: 'student' }))}
+                  className={`p-3 rounded-xl border flex items-center justify-center gap-2.5 text-xs font-semibold transition-all cursor-pointer ${
+                    formData.role === 'student'
+                      ? 'border-brand-600 bg-brand-600/10 text-white shadow-sm'
+                      : 'border-slate-700 bg-slate-900/60 text-slate-400 hover:text-white hover:border-slate-600'
+                  }`}
+                >
+                  <User className="w-4 h-4 text-brand-400" />
+                  <span>Student Participant</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, role: 'organizer' }))}
+                  className={`p-3 rounded-xl border flex items-center justify-center gap-2.5 text-xs font-semibold transition-all cursor-pointer ${
+                    formData.role === 'organizer'
+                      ? 'border-brand-600 bg-brand-600/10 text-white shadow-sm'
+                      : 'border-slate-700 bg-slate-900/60 text-slate-400 hover:text-white hover:border-slate-600'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4 text-brand-400" />
+                  <span>Event Organizer</span>
+                </button>
+              </div>
+            </div>
+
             {/* Full Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                 Full Name
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <input
                   type="text"
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-3 bg-white/5 border ${errors.fullName ? 'border-red-500' : 'border-white/10'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white placeholder-gray-500`}
-                  placeholder="Enter your full name"
+                  className={`w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border ${
+                    errors.fullName ? 'border-rose-500' : 'border-slate-700'
+                  } rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-600`}
+                  placeholder="e.g., Alex Johnson"
                 />
               </div>
               {errors.fullName && (
-                <p className="mt-1 text-sm text-red-400 flex items-center gap-1 animate-shake">
-                  <XCircle className="w-4 h-4" />
-                  {errors.fullName}
-                </p>
+                <p className="mt-1 text-xs text-rose-400 font-medium">{errors.fullName}</p>
               )}
             </div>
 
-            {/* Email */}
+            {/* Email Address */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-3 bg-white/5 border ${errors.email ? 'border-red-500' : 'border-white/10'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white placeholder-gray-500`}
-                  placeholder="you@college.edu"
+                  className={`w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border ${
+                    errors.email ? 'border-rose-500' : 'border-slate-700'
+                  } rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-600`}
+                  placeholder="alex@university.edu"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-400 flex items-center gap-1 animate-shake">
-                  <XCircle className="w-4 h-4" />
-                  {errors.email}
-                </p>
+                <p className="mt-1 text-xs text-rose-400 font-medium">{errors.email}</p>
               )}
             </div>
 
-            {/* Password */}
+            {/* College Affiliation */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Password
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                Affiliated University / College
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`w-full pl-10 pr-12 py-3 bg-white/5 border ${errors.password ? 'border-red-500' : 'border-white/10'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white placeholder-gray-500`}
-                  placeholder="Create a strong password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-
-              {/* Password Strength Indicator */}
-              {formData.password && (
-                <div className="mt-2">
-                  <div className="flex gap-1 mb-1">
-                    {[1, 2, 3, 4].map((level) => (
-                      <div
-                        key={level}
-                        className={`h-1 flex-1 rounded ${level <= passwordStrength ? getPasswordStrengthColor() : 'bg-gray-700'
-                          } transition-all duration-300`}
-                      />
-                    ))}
-                  </div>
-                  {passwordStrength > 0 && (
-                    <p className="text-xs text-gray-400">
-                      Password strength: <span className={passwordStrength >= 3 ? 'text-green-400' : 'text-orange-400'}>{getPasswordStrengthText()}</span>
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-400 flex items-center gap-1 animate-shake">
-                  <XCircle className="w-4 h-4" />
-                  {errors.password}
-                </p>
-              )}
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={`w-full pl-10 pr-12 py-3 bg-white/5 border ${errors.confirmPassword ? 'border-red-500' : 'border-white/10'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white placeholder-gray-500`}
-                  placeholder="Confirm your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              {formData.confirmPassword && formData.password === formData.confirmPassword && (
-                <p className="mt-1 text-sm text-green-400 flex items-center gap-1">
-                  <CheckCircle className="w-4 h-4" />
-                  Passwords match
-                </p>
-              )}
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-400 flex items-center gap-1 animate-shake">
-                  <XCircle className="w-4 h-4" />
-                  {errors.confirmPassword}
-                </p>
-              )}
-            </div>
-
-            {/* Role Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                I am a
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, role: 'student' }))}
-                  className={`p-4 rounded-lg border-2 transition-all ${formData.role === 'student'
-                    ? 'border-purple-500 bg-purple-500/10'
-                    : 'border-white/10 bg-white/5 hover:border-white/20'
-                    }`}
-                >
-                  <User className="w-6 h-6 mx-auto mb-2" />
-                  <p className="font-medium text-sm">Student</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, role: 'organizer' }))}
-                  className={`p-4 rounded-lg border-2 transition-all ${formData.role === 'organizer'
-                    ? 'border-purple-500 bg-purple-500/10'
-                    : 'border-white/10 bg-white/5 hover:border-white/20'
-                    }`}
-                >
-                  <Calendar className="w-6 h-6 mx-auto mb-2" />
-                  <p className="font-medium text-sm">Organizer</p>
-                </button>
-              </div>
-            </div>
-
-            {/* College Selection (for student and organizer) */}
-            {((formData.role === 'organizer' || formData.role === 'student')) && (
-
-              <div className="animate-fadeInUp">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Select Your College
-                </label>
+                <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
                 <select
                   name="collegeId"
                   value={formData.collegeId}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white/5 border ${errors.collegeId ? 'border-red-500' : 'border-white/10'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white`}
+                  className={`w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border ${
+                    errors.collegeId ? 'border-rose-500' : 'border-slate-700'
+                  } rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-600`}
                 >
-                  <option value="" className="bg-slate-900">Select a college</option>
-                  {colleges.map(college => (
-                    <option key={college._id} value={college._id} className="bg-slate-900">
-                      {college.name}
+                  <option value="" className="bg-surface-900 text-slate-400">Select affiliated college</option>
+                  {colleges.map((c) => (
+                    <option key={c._id} value={c._id} className="bg-surface-900 text-white">
+                      {c.name}
                     </option>
                   ))}
                 </select>
-                {errors.collegeId && (
-                  <p className="mt-1 text-sm text-red-400 flex items-center gap-1 animate-shake">
-                    <XCircle className="w-4 h-4" />
-                    {errors.collegeId}
-                  </p>
+              </div>
+              {errors.collegeId && (
+                <p className="mt-1 text-xs text-rose-400 font-medium">{errors.collegeId}</p>
+              )}
+            </div>
+
+            {/* Passwords in Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className={`w-full pl-9 pr-9 py-2.5 bg-slate-950/70 border ${
+                      errors.password ? 'border-rose-500' : 'border-slate-700'
+                    } rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-600`}
+                    placeholder="Min. 8 chars"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="mt-1 text-xs text-rose-400 font-medium">{errors.password}</p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className={`w-full pl-9 pr-9 py-2.5 bg-slate-950/70 border ${
+                      errors.confirmPassword ? 'border-rose-500' : 'border-slate-700'
+                    } rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-600`}
+                    placeholder="Repeat password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-xs text-rose-400 font-medium">{errors.confirmPassword}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Password Strength Meter */}
+            {formData.password && (
+              <div className="flex items-center gap-1.5 pt-1">
+                {[1, 2, 3, 4].map((idx) => (
+                  <div key={idx} className={`h-1 flex-1 rounded-full ${getStrengthBar(idx)} transition-all`} />
+                ))}
               </div>
             )}
 
-            {/* Terms and Conditions */}
-            <div>
-              <label className="flex items-start gap-3 cursor-pointer group">
+            {/* Terms checkbox */}
+            <div className="pt-2">
+              <label className="flex items-start gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={agreedToTerms}
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                  className="mt-0.5 w-4 h-4 rounded border-slate-700 bg-slate-900 text-brand-600 focus:ring-brand-600"
                 />
-                <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">
-                  I agree to the Terms and Conditions and Privacy Policy
+                <span className="text-xs text-slate-300 leading-normal">
+                  I agree to CollegeSphere's terms of service and academic integrity policies.
                 </span>
               </label>
               {errors.terms && (
-                <p className="mt-1 text-sm text-red-400 flex items-center gap-1 animate-shake">
-                  <XCircle className="w-4 h-4" />
-                  {errors.terms}
-                </p>
+                <p className="mt-1 text-xs text-rose-400 font-medium">{errors.terms}</p>
               )}
             </div>
 
-            {/* Submit Button */}
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={loading}
-              className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2 group"
+              className="w-full mt-3 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creating Account...
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Processing...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5" />
-                  Create Account
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <span>Verify Email & Create Account</span>
+                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
+          </form>
 
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white/5 text-gray-400">Or continue with</span>
-              </div>
-            </div>
-
-            {/* Google Sign-Up Button */}
-            <button
-              onClick={() => {
-                window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/google`;
-              }}
-              className="w-full py-3.5 bg-white/5 border border-white/10 rounded-lg font-medium text-base transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02] hover:shadow-lg flex items-center justify-center gap-3 group"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              <span className="text-gray-300 group-hover:text-white transition-colors">
-                Sign up with Google
-              </span>
-            </button>
-          </div>
-
-          {/* Login Link */}
-          <div className="mt-6 text-center">
-            <p className="text-gray-400">
-              Already have an account?{' '}
-              <button
-                onClick={() => navigate("/login")}
-                className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
-              >
-                Sign in
-              </button>
-                          
-            </p>
-          </div>
+          <p className="text-center text-xs text-slate-400 mt-6">
+            Already have an account?{' '}
+            <Link to="/login" className="text-brand-400 hover:text-brand-300 font-semibold cursor-pointer">
+              Sign in
+            </Link>
+          </p>
         </div>
-
-        {/* Footer Note */}
-        <p className="text-center text-gray-500 text-sm mt-6">
-          By creating an account, you'll be able to discover and register for events across multiple colleges
-        </p>
       </div>
 
-      {/* OTP Verification Modal */}
+      {/* Verification OTP Modal */}
       {showOtpModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl animate-fadeIn">
+        <div
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-surface-900 border border-slate-700/80 rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-modal animate-in fade-in zoom-in-95 duration-200">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-8 h-8 text-purple-400" />
+              <div className="w-12 h-12 bg-brand-500/15 border border-brand-500/30 text-brand-400 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <Mail className="w-6 h-6" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Verify Your Email</h3>
-              <p className="text-gray-400 text-sm">
-                We've sent a 6-digit verification code to<br />
-                <span className="text-purple-400 font-medium">{formData.email}</span>
+              <h3 className="text-xl font-bold text-white mb-1">Verify Your Email</h3>
+              <p className="text-slate-400 text-xs">
+                Enter the 6-digit code dispatched to <br />
+                <span className="font-semibold text-slate-200">{formData.email}</span>
               </p>
             </div>
 
-            {/* OTP Error Message */}
             {otpError && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
-                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-red-300 text-sm">{otpError}</p>
+              <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start gap-2 text-rose-300 text-xs">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400 mt-0.5" />
+                <span>{otpError}</span>
               </div>
             )}
 
-            {/* OTP Input */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-300 mb-2 text-center">
-                Enter Verification Code
-              </label>
               <input
                 type="text"
                 value={otpValue}
                 onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                  setOtpValue(value);
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setOtpValue(val);
                   setOtpError('');
                 }}
                 maxLength={6}
-                className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white placeholder-gray-500 tracking-[0.5em] text-center text-2xl font-bold"
+                className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white tracking-[0.5em] text-center text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-brand-600"
                 placeholder="000000"
                 autoFocus
               />
             </div>
 
-            {/* Action Buttons */}
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <button
+                type="button"
                 onClick={handleOtpSubmit}
                 disabled={loading || otpValue.length !== 6}
-                className="w-full py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
-                {loading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Verifying...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-5 h-5" />
-                    Verify & Create Account
-                  </>
-                )}
+                {loading ? 'Verifying Code...' : 'Complete Registration'}
               </button>
 
               <button
+                type="button"
                 onClick={async () => {
                   if (resendTimer === 0) {
                     setOtpError('');
@@ -652,18 +513,19 @@ export default function Register() {
                   }
                 }}
                 disabled={resendTimer > 0}
-                className="w-full py-2 text-purple-400 hover:text-purple-300 disabled:text-gray-500 disabled:cursor-not-allowed font-medium transition-colors text-sm"
+                className="w-full py-2 text-brand-400 hover:text-brand-300 disabled:text-slate-600 text-xs font-semibold transition-colors cursor-pointer"
               >
                 {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend verification code'}
               </button>
 
               <button
+                type="button"
                 onClick={() => {
                   setShowOtpModal(false);
                   setOtpValue('');
                   setOtpError('');
                 }}
-                className="w-full py-2 text-gray-400 hover:text-gray-300 font-medium transition-colors text-sm"
+                className="w-full py-2 text-slate-400 hover:text-white text-xs font-medium cursor-pointer"
               >
                 Cancel
               </button>

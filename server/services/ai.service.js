@@ -97,7 +97,7 @@ async function processAIChat({ user, messages, confirmAction }) {
 }
 
 /**
- * Groq LLM Handler (Llama 3.3 70B Versatile with Function Calling)
+ * Groq LLM Handler (openai/gpt-oss-120b with Function Calling)
  */
 async function processWithGroq({ user, messages, tools, apiKey }) {
   const groq = new Groq({ apiKey });
@@ -129,7 +129,7 @@ async function processWithGroq({ user, messages, tools, apiKey }) {
       iterations++;
 
       const response = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         messages: groqMessages,
         tools: formattedTools,
         tool_choice: 'auto',
