@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle, XCircle, Calendar, MapPin, Tag } from 'luci
 export default function ConfirmationCard({ pendingAction, onConfirm, onCancel, isLoading }) {
   if (!pendingAction) return null;
 
-  const { actionType, summary, payload } = pendingAction;
+  const { summary, payload } = pendingAction;
 
   return (
     <div className="my-2.5 p-3.5 rounded-xl border border-amber-500/40 bg-surface-900 shadow-md">

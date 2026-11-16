@@ -19,27 +19,36 @@ export default function GoogleCallback() {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
 
-        setStatus('success');
+        const timer = setTimeout(() => {
+          setStatus('success');
+          setTimeout(() => {
+            if (!user.isProfileComplete) {
+              navigate('/complete-profile');
+            } else {
+              if (user.role === 'superadmin') navigate('/superadmin/dashboard');
+              else if (user.role === 'admin') navigate('/admin/dashboard');
+              else if (user.role === 'organizer') navigate('/organizer/dashboard');
+              else navigate('/student/dashboard');
+            }
+          }, 800);
+        }, 100);
 
-        setTimeout(() => {
-          if (!user.isProfileComplete) {
-            navigate('/complete-profile');
-          } else {
-            if (user.role === 'superadmin') navigate('/superadmin/dashboard');
-            else if (user.role === 'admin') navigate('/admin/dashboard');
-            else if (user.role === 'organizer') navigate('/organizer/dashboard');
-            else navigate('/student/dashboard');
-          }
-        }, 1200);
-      } catch (err) {
-        setStatus('error');
-        setError('Failed to process authentication credentials.');
-        setTimeout(() => navigate('/login'), 3000);
+        return () => clearTimeout(timer);
+      } catch {
+        const timer = setTimeout(() => {
+          setStatus('error');
+          setError('Failed to process authentication credentials.');
+          setTimeout(() => navigate('/login'), 3000);
+        }, 100);
+        return () => clearTimeout(timer);
       }
     } else {
-      setStatus('error');
-      setError('Google authentication was interrupted. Please retry.');
-      setTimeout(() => navigate('/login'), 3000);
+      const timer = setTimeout(() => {
+        setStatus('error');
+        setError('Google authentication was interrupted. Please retry.');
+        setTimeout(() => navigate('/login'), 3000);
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [searchParams, navigate]);
 

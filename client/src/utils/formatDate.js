@@ -12,7 +12,7 @@ export const formatDate = (dateString) => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
-  } catch (err) {
+  } catch {
     return 'N/A';
   }
 };
@@ -33,9 +33,10 @@ export const formatCalendarDate = (dateString) => {
       year: date.getFullYear(),
       weekday: date.toLocaleString('en-US', { weekday: 'short' })
     };
-  } catch (err) {
+  } catch {
     return { month: 'TBD', day: '--', year: '', weekday: '' };
   }
 };
 
 export default formatDate;
+

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Calendar,
   Clock,
@@ -22,6 +23,7 @@ import api from '../api/axios';
 import { formatDate } from '../utils/formatDate';
 import PosterPreviewModal from '../components/common/PosterPreviewModal';
 import ProfileEditModal from '../components/common/ProfileEditModal';
+import ProfileSection from '../components/common/ProfileSection';
 import StatCard from '../components/common/StatCard';
 import TeamRegistrationModal from '../components/events/TeamRegistrationModal';
 import EventCard from '../components/events/EventCard';
@@ -39,7 +41,6 @@ export default function StudentDashboard() {
 
   // Active navigation tab: 'events' | 'registrations'
   const [activeTab, setActiveTab] = useState('events');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,15 +67,16 @@ export default function StudentDashboard() {
     try {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
-      fetchDashboardData(token);
-    } catch (e) {
+      fetchDashboardData();
+    } catch {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showMyCollegeOnly]);
 
-  const fetchDashboardData = async (token) => {
+  const fetchDashboardData = async () => {
     setLoading(true);
     setError('');
 
@@ -283,19 +285,19 @@ export default function StudentDashboard() {
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-surface-900/95 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold shadow-sm">
+          <Link to="/student/dashboard" className="flex items-center gap-3 group cursor-pointer">
+            <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex-shrink-0 flex items-center justify-center font-bold shadow-sm group-hover:scale-105 transition-transform">
               <GraduationCap className="w-6 h-6" />
             </div>
-            <div>
-              <span className="font-extrabold text-lg text-white block tracking-tight">
+            <div className="flex flex-col justify-center">
+              <span className="font-extrabold text-lg text-white tracking-tight leading-tight">
                 CollegeSphere
               </span>
-              <span className="text-[11px] font-semibold text-brand-400 uppercase tracking-wider">
+              <span className="text-[10px] font-semibold text-brand-400 uppercase tracking-wider leading-none mt-0.5">
                 Student Portal
               </span>
             </div>
-          </div>
+          </Link>
 
           <div className="hidden md:flex items-center gap-2">
             <button
@@ -323,12 +325,28 @@ export default function StudentDashboard() {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'profile'
+                  ? 'bg-brand-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+              }`}
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Profile & ID</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setProfileEditModal(true)}
-              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-slate-800 bg-surface-800 hover:bg-slate-700/60 transition-all text-xs font-semibold text-slate-200 cursor-pointer"
+              onClick={() => setActiveTab('profile')}
+              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all text-xs font-semibold cursor-pointer ${
+                activeTab === 'profile'
+                  ? 'border-brand-500 bg-brand-500/15 text-white shadow-sm'
+                  : 'border-slate-800 bg-surface-800 hover:bg-slate-700/60 text-slate-200'
+              }`}
+              title="View Academic Profile"
             >
               <div className="w-6 h-6 rounded-lg bg-brand-500/20 text-brand-400 flex items-center justify-center font-bold text-[11px]">
                 {user?.name?.[0]?.toUpperCase() || 'S'}
@@ -357,50 +375,91 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Personalized Welcome Row */}
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Welcome back, {user?.name || 'Student'} 👋
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Explore inter-college schedules, manage active event registrations, and track entry passes.
-            </p>
-          </div>
+        {/* Personalized Welcome Row & Top Metrics (Shown on events / registrations tabs) */}
+        {activeTab !== 'profile' && (
+          <>
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                  Welcome back, {user?.name || 'Student'} 👋
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Explore inter-college schedules, manage active event registrations, and track entry passes.
+                </p>
+              </div>
 
-          <button
-            onClick={() => fetchDashboardData(localStorage.getItem('token'))}
-            className="self-start sm:self-auto px-3.5 py-2 bg-surface-800 hover:bg-slate-700/60 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-300 flex items-center gap-2 transition-all cursor-pointer"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Sync Data</span>
-          </button>
-        </div>
+              <button
+                onClick={() => fetchDashboardData(localStorage.getItem('token'))}
+                className="self-start sm:self-auto px-3.5 py-2 bg-surface-800 hover:bg-slate-700/60 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-300 flex items-center gap-2 transition-all cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>Sync Data</span>
+              </button>
+            </div>
 
-        {/* Stat Metrics Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
-          <StatCard
-            icon={Trophy}
-            label="Total Registrations"
-            value={stats.total}
-            accent="brand"
-            trend="Active Event Entries"
-          />
-          <StatCard
-            icon={Calendar}
-            label="Upcoming Events"
-            value={stats.upcoming}
-            accent="emerald"
-            trend="Confirmed Participation"
-          />
-          <StatCard
-            icon={Clock}
-            label="Deadlines Approaching"
-            value={stats.deadlines}
-            accent="amber"
-            trend="Closing in ≤ 48 hours"
-          />
-        </div>
+            {/* Stat Metrics Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
+              <div className="bg-surface-900 border border-slate-800 p-5 rounded-2xl shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">Event Registrations</span>
+                  <div className="p-2 bg-brand-500/10 text-brand-400 rounded-xl">
+                    <Trophy className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-white tracking-tight font-mono">
+                    {stats.total}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Active Event Entry Passes</p>
+                </div>
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                  <span>{myRegistrations.filter((r) => r.isTeamRegistration).length} Team</span>
+                  <span>{myRegistrations.filter((r) => !r.isTeamRegistration).length} Solo Passes</span>
+                </div>
+              </div>
+
+              <div className="bg-surface-900 border border-slate-800 p-5 rounded-2xl shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">Confirmed Participation</span>
+                  <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-white tracking-tight font-mono">
+                    {stats.upcoming}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Upcoming Campus Dates</p>
+                </div>
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                  <span className="text-emerald-400 font-semibold">Confirmed</span>
+                  <span className="text-slate-500">Active Schedule</span>
+                </div>
+              </div>
+
+              <div className="bg-surface-900 border border-slate-800 p-5 rounded-2xl shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">Registration Deadlines</span>
+                  <div className={`p-2 rounded-xl ${stats.deadlines > 0 ? 'bg-amber-500/10 text-amber-400' : 'bg-surface-800 text-slate-400'}`}>
+                    <Clock className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-white tracking-tight font-mono">
+                    {stats.deadlines}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Approaching Cutoffs</p>
+                </div>
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                  <span className={stats.deadlines > 0 ? 'text-amber-400 font-semibold' : 'text-slate-400'}>
+                    {stats.deadlines > 0 ? 'Closing in ≤ 48 hours' : 'No Urgent Deadlines'}
+                  </span>
+                  <span className="text-slate-500">Live Entries</span>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Tab 1: Discover Events */}
         {activeTab === 'events' && (
@@ -575,19 +634,22 @@ export default function StudentDashboard() {
                   return (
                     <div
                       key={regId}
-                      className="bg-surface-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5 hover:border-slate-700 transition-all"
+                      className="bg-surface-900 border border-slate-800 rounded-2xl shadow-sm flex flex-col md:flex-row overflow-hidden hover:border-slate-700 transition-all group"
                     >
-                      <div className="space-y-2">
+                      {/* Left Ticket Header Stub */}
+                      <div className="bg-surface-950/70 p-5 sm:p-6 md:w-3/4 space-y-3">
                         <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-brand-500/15 text-brand-300 border border-brand-500/30">
-                            Registered Entry
+                          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand-500/15 text-brand-300 border border-brand-500/30">
+                            Academic Entry Pass
                           </span>
-                          <span className="text-xs text-slate-500 font-mono">
-                            Pass ID: {regId.slice(-6).toUpperCase()}
+                          <span className="text-xs text-slate-400 font-mono">
+                            PASS-{regId.slice(-6).toUpperCase()}
                           </span>
                         </div>
 
-                        <h3 className="text-lg font-bold text-white">{eventName}</h3>
+                        <h3 className="text-lg font-bold text-white group-hover:text-brand-300 transition-colors">
+                          {eventName}
+                        </h3>
 
                         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
                           <span className="flex items-center gap-1.5">
@@ -606,17 +668,27 @@ export default function StudentDashboard() {
 
                         {reg.isTeamRegistration && reg.teamName && (
                           <div className="text-xs text-brand-300 pt-1">
-                            Team: <strong className="text-white">{reg.teamName}</strong> ({reg.participants?.length || 0} members)
+                            Team Roster: <strong className="text-white">{reg.teamName}</strong> ({reg.participants?.length || 0} members)
                           </div>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-3 self-end md:self-auto">
+                      {/* Perforated Stub Divider & Action Area */}
+                      <div className="border-t md:border-t-0 md:border-l border-dashed border-slate-800 p-5 sm:p-6 md:w-1/4 flex flex-col justify-between items-start md:items-end bg-surface-900">
+                        <div className="text-left md:text-right">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold block">
+                            Participation Standing
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 mt-1">
+                            <CheckCircle className="w-3.5 h-3.5" /> Confirmed
+                          </span>
+                        </div>
+
                         <button
                           onClick={() => handleCancelRegistration(regId)}
-                          className="px-4 py-2 border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                          className="mt-4 md:mt-0 w-full md:w-auto px-3.5 py-1.5 border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-semibold rounded-xl transition-all cursor-pointer"
                         >
-                          Cancel Registration
+                          Cancel Pass
                         </button>
                       </div>
                     </div>
@@ -625,6 +697,28 @@ export default function StudentDashboard() {
               </div>
             )}
           </section>
+        )}
+
+        {/* Tab 3: Collegiate Profile & Academic ID */}
+        {activeTab === 'profile' && (
+          <ProfileSection
+            user={user}
+            collegeName={
+              colleges.find((c) => c._id === user?.collegeId || c._id === user?.collegeId?._id)?.name ||
+              user?.collegeName ||
+              user?.collegeId?.name ||
+              'Accredited University'
+            }
+            roleTitle="Student Scholar"
+            roleDescription="Verified Academic Member"
+            stats={[
+              { label: 'Event Entries', value: stats.total, icon: Trophy, subtext: 'Registered' },
+              { label: 'Upcoming', value: stats.upcoming, icon: Calendar, subtext: 'Confirmed' },
+              { label: 'Deadlines', value: stats.deadlines, icon: Clock, subtext: 'Within 48h' }
+            ]}
+            onSaveProfile={handleSaveProfile}
+            accentColor="brand"
+          />
         )}
       </main>
 

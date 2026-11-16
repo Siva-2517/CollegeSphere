@@ -258,3 +258,4 @@ export default function TeamRegistrationModal({ isOpen, onClose, event, onRegist
     </div>
   );
 }
+

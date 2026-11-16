@@ -386,3 +386,4 @@ export default function EventModal({ isOpen, onClose, event, onSave, colleges = 
     </div>
   );
 }
+

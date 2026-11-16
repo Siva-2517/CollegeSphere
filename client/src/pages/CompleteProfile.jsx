@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { User, Calendar, Building2, AlertCircle, ArrowRight, GraduationCap } from 'lucide-react';
 import api from '../api/axios';
 
@@ -32,6 +32,7 @@ export default function CompleteProfile() {
     }
 
     fetchColleges();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchColleges = async () => {
@@ -99,9 +100,14 @@ export default function CompleteProfile() {
   return (
     <div className="min-h-screen bg-surface-900 text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans selection:bg-brand-600 selection:text-white">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-6">
-        <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center mx-auto mb-3 shadow-sm">
-          <GraduationCap className="w-6 h-6" />
-        </div>
+        <Link to="/" className="inline-flex items-center gap-3 mb-3 group cursor-pointer">
+          <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex-shrink-0 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+            <GraduationCap className="w-6 h-6" />
+          </div>
+          <span className="font-extrabold text-2xl tracking-tight text-white leading-none">
+            CollegeSphere
+          </span>
+        </Link>
         <h2 className="text-2xl font-bold text-white tracking-tight">
           Complete Your Profile
         </h2>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Calendar,
   Users,
@@ -23,7 +23,6 @@ export default function Landing() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [registering, setRegistering] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -96,7 +95,7 @@ export default function Landing() {
     fetchData();
   }, []);
 
-  const handleRegisterClick = async (event) => {
+  const handleRegisterClick = async (_event) => {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
 
@@ -112,7 +111,7 @@ export default function Landing() {
       } else {
         alert('Event registration is primarily for student accounts.');
       }
-    } catch (e) {
+    } catch {
       navigate('/login');
     }
   };
@@ -132,19 +131,19 @@ export default function Landing() {
       {/* Top Collegiate Navigation Bar */}
       <header className="sticky top-0 z-40 bg-surface-900/90 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center font-extrabold shadow-sm">
+          <Link to="/" className="flex items-center gap-3 group cursor-pointer">
+            <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex-shrink-0 flex items-center justify-center font-extrabold shadow-sm group-hover:scale-105 transition-transform">
               <GraduationCap className="w-6 h-6" />
             </div>
-            <div>
-              <span className="font-extrabold text-lg tracking-tight text-white block">
+            <div className="flex flex-col justify-center">
+              <span className="font-extrabold text-lg tracking-tight text-white leading-tight">
                 CollegeSphere
               </span>
-              <span className="text-[11px] text-slate-400 font-medium tracking-wide uppercase">
+              <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase leading-none mt-0.5">
                 Inter-College Event Network
               </span>
             </div>
-          </div>
+          </Link>
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
             <a href="#events" className="hover:text-white transition-colors">

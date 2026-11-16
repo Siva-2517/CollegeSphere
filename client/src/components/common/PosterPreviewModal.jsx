@@ -59,3 +59,4 @@ export default function PosterPreviewModal({ isOpen, onClose, posterUrl, title =
     </div>
   );
 }
+

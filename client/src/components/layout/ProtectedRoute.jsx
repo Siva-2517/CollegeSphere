@@ -17,7 +17,7 @@ export default function ProtectedRoute({ allowedRoles = [], children }) {
   let user = null;
   try {
     user = JSON.parse(userStr);
-  } catch (e) {
+  } catch {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     return <Navigate to="/login" replace state={{ from: location }} />;
@@ -46,3 +46,4 @@ export default function ProtectedRoute({ allowedRoles = [], children }) {
 
   return children;
 }
+

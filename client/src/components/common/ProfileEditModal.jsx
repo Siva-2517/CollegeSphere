@@ -197,3 +197,4 @@ export default function ProfileEditModal({ isOpen, onClose, user, onSave }) {
     </div>
   );
 }
+
